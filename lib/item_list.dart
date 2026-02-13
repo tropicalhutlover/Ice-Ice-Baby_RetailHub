@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import '../db_helper.dart';
 
 class ItemListScreen extends StatefulWidget {
-  const ItemListScreen({super.key});
+  final int userId;
+
+  const ItemListScreen({super.key, required this.userId});
 
   @override
   State<ItemListScreen> createState() => _ItemListScreenState();
@@ -10,6 +12,7 @@ class ItemListScreen extends StatefulWidget {
 
 class _ItemListScreenState extends State<ItemListScreen> {
   List items = [];
+  final Map<int, int> quantities = {};
 
   @override
   void initState() {
@@ -28,7 +31,36 @@ class _ItemListScreenState extends State<ItemListScreen> {
     }
 
     items = await db.getItems();
+
+    for (var item in items) {
+      quantities[item['id']] = 0;
+    }
+
     setState(() {});
+  }
+
+  void placeOrder() async {
+    final db = DBHelper();
+
+    for (var item in items) {
+      final qty = quantities[item['id']] ?? 0;
+      if (qty > 0) {
+        final total = qty * (item['price'] as num).toDouble();
+
+        await db.addOrder(
+          widget.userId,
+          item['name'],
+          qty,
+          total,
+        );
+      }
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Order placed successfully')),
+    );
+
+    Navigator.pop(context);
   }
 
   @override
@@ -38,48 +70,51 @@ class _ItemListScreenState extends State<ItemListScreen> {
         title: const Text('Item List'),
         backgroundColor: Colors.blue,
         centerTitle: true,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.search),
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Search functionality coming soon'),
+      ),
+      body: Column(
+        children: [
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.all(15),
+              itemCount: items.length,
+              itemBuilder: (context, index) {
+                return _itemCard(items[index]);
+              },
+            ),
+          ),
+
+          // Order Button
+          Padding(
+            padding: const EdgeInsets.all(15),
+            child: SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton(
+                onPressed: placeOrder,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue,
                 ),
-              );
-            },
+                child: const Text(
+                  'Order Now',
+                  style: TextStyle(fontSize: 18),
+                ),
+              ),
+            ),
           ),
         ],
-      ),
-      body: ListView.builder(
-        padding: const EdgeInsets.all(15),
-        itemCount: items.length,
-        itemBuilder: (context, index) {
-          return _itemCard(items[index]);
-        },
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Add Item functionality coming soon'),
-            ),
-          );
-        },
-        backgroundColor: Colors.blue,
-        child: const Icon(Icons.add, color: Colors.white),
       ),
     );
   }
 
   Widget _itemCard(Map item) {
+    final qty = quantities[item['id']] ?? 0;
+
     return Card(
       margin: const EdgeInsets.only(bottom: 15),
       child: Padding(
         padding: const EdgeInsets.all(15),
         child: Row(
           children: [
-            // Ice cream icon container
             Container(
               width: 70,
               height: 70,
@@ -96,7 +131,6 @@ class _ItemListScreenState extends State<ItemListScreen> {
 
             const SizedBox(width: 15),
 
-            // Item details
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -108,49 +142,45 @@ class _ItemListScreenState extends State<ItemListScreen> {
                       fontSize: 16,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 5),
                   Text(
                     '₱${item['price']}',
                     style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
                       color: Colors.green,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ],
               ),
             ),
 
-            // More options menu
-            PopupMenuButton<String>(
-              icon: const Icon(Icons.more_vert, color: Colors.grey),
-              onSelected: (value) {
-                if (value == 'edit') {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Edit ${item['name']}'),
-                    ),
-                  );
-                } else if (value == 'delete') {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Delete ${item['name']}'),
-                    ),
-                  );
-                }
-              },
-              itemBuilder: (BuildContext context) {
-                return const [
-                  PopupMenuItem<String>(
-                    value: 'edit',
-                    child: Text('Edit'),
-                  ),
-                  PopupMenuItem<String>(
-                    value: 'delete',
-                    child: Text('Delete'),
-                  ),
-                ];
-              },
+            // Quantity
+            Row(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.remove),
+                  onPressed: qty > 0
+                      ? () {
+                    setState(() {
+                      quantities[item['id']] = qty - 1;
+                    });
+                  }
+                      : null,
+                ),
+                Text(
+                  qty.toString(),
+                  style: const TextStyle(fontSize: 16),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.add),
+                  onPressed: () {
+                    setState(() {
+                      quantities[item['id']] = qty + 1;
+                    });
+                  },
+                ),
+              ],
             ),
           ],
         ),
