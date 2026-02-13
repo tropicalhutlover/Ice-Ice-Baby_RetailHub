@@ -91,7 +91,10 @@ class _LoginScreenState extends State<LoginScreen> {
                   Navigator.pushReplacement(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => DashboardScreen(userId: user['id']),
+                      builder: (_) => DashboardScreen(
+                        userId: user['id'],
+                        userName: user['name'] ?? '',
+                      ),
                     ),
                   );
                 } else {

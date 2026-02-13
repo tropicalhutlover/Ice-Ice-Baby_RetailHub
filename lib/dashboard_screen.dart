@@ -5,8 +5,13 @@ import 'ordered_list.dart';
 
 class DashboardScreen extends StatefulWidget {
   final int userId;
+  final String userName;
 
-  const DashboardScreen({super.key, required this.userId});
+  const DashboardScreen({
+    super.key,
+    required this.userId,
+    required this.userName,
+  });
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
@@ -15,7 +20,54 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   int itemCount = 0;
   int orderCount = 0;
-  double revenue = 0;
+
+  Widget _infoChip({
+    required IconData icon,
+    required String label,
+    required String value,
+    required Color color,
+  }) {
+    return Expanded(
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 4),
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 6,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: color, size: 22),
+            const SizedBox(height: 6),
+            Text(
+              value,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 11,
+                color: Colors.black54,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   @override
   void initState() {
@@ -31,10 +83,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     itemCount = items.length;
     orderCount = orders.length;
-    revenue = orders.fold(
-      0,
-          (sum, order) => sum + (order['total'] as num),
-    );
 
     setState(() {});
   }
@@ -43,71 +91,142 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Dashboard"),
+        title: const Text("Ice Ice Baby"),
         backgroundColor: Colors.blue,
         centerTitle: true,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            // Welcome Card (UI change only)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.blue[50],
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Row(
-                children: [
-                  CircleAvatar(
-                    radius: 24,
-                    backgroundColor: Colors.blue,
-                    child: Icon(Icons.person, color: Colors.white),
+      body: Container(
+        width: double.infinity,
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color(0xFFE3F2FD),
+              Color(0xFFFFFFFF),
+            ],
+          ),
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Ice Ice Baby',
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context)
+                            .textTheme
+                            .headlineMedium
+                            ?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.blueGrey[800],
+                            ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Welcome, ${widget.userName}!',
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context)
+                            .textTheme
+                            .titleMedium
+                            ?.copyWith(
+                              color: Colors.blueGrey[700],
+                            ),
+                      ),
+                      const SizedBox(height: 4),
+                      const Text(
+                        'Craving something sweet? Order your favourite scoops now!',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.black54,
+                        ),
+                      ),
+                    ],
                   ),
-                  SizedBox(width: 15),
-                  Text(
-                    'Welcome',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
+                ),
+
+                const SizedBox(height: 32),
+
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    _infoChip(
+                      icon: Icons.icecream,
+                      label: 'Flavours',
+                      value: '$itemCount',
+                      color: Colors.pinkAccent,
+                    ),
+                    _infoChip(
+                      icon: Icons.shopping_bag,
+                      label: 'Your orders',
+                      value: '$orderCount',
+                      color: Colors.deepPurple,
+                    ),
+                  ],
+                ),
+
+                const Spacer(),
+
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              ItemListScreen(userId: widget.userId),
+                        ),
+                      ).then((_) => loadStats());
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue,
+                      minimumSize: const Size.fromHeight(52),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    icon: const Icon(Icons.local_grocery_store),
+                    label: const Text(
+                      'Order Ice Cream',
+                      style: TextStyle(fontSize: 18),
                     ),
                   ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 30),
-
-            // Action Buttons (same navigation as before)
-            ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => ItemListScreen(userId: widget.userId),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              OrderedListScreen(userId: widget.userId),
+                        ),
+                      ).then((_) => loadStats());
+                    },
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size.fromHeight(48),
+                      side: const BorderSide(color: Colors.blue),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    icon: const Icon(Icons.receipt_long),
+                    label: const Text('View my orders'),
                   ),
-                );
-              },
-              child: const Text("View Products"),
+                ),
+              ],
             ),
-
-            const SizedBox(height: 15),
-
-            ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) =>
-                        OrderedListScreen(userId: widget.userId),
-                  ),
-                );
-              },
-              child: const Text("View Orders"),
-            ),
-          ],
+          ),
         ),
       ),
     );

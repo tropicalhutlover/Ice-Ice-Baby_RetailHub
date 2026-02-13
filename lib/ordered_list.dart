@@ -29,7 +29,8 @@ class _OrderedListScreenState extends State<OrderedListScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Ordered Items"),
-        backgroundColor: Colors.indigo,
+        backgroundColor: Colors.blue,
+        centerTitle: true,
       ),
       body: orders.isEmpty
           ? const Center(child: Text("No orders yet"))

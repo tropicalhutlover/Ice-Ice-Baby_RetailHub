@@ -88,14 +88,18 @@ class _ItemListScreenState extends State<ItemListScreen> {
             padding: const EdgeInsets.all(15),
             child: SizedBox(
               width: double.infinity,
-              height: 50,
-              child: ElevatedButton(
+              child: ElevatedButton.icon(
                 onPressed: placeOrder,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blue,
+                  minimumSize: const Size.fromHeight(52),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
-                child: const Text(
-                  'Order Now',
+                icon: const Icon(Icons.local_grocery_store),
+                label: const Text(
+                  'Order Ice Cream',
                   style: TextStyle(fontSize: 18),
                 ),
               ),
