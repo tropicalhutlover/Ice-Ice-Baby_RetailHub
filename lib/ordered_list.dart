@@ -14,8 +14,8 @@ class _OrderedListScreenState extends State<OrderedListScreen> {
   List orders = [];
 
   @override
-  void initState() {
-    super.initState();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
     loadOrders();
   }
 
