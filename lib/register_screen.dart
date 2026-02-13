@@ -74,6 +74,28 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
             const SizedBox(height: 20),
 
+            const TextField(
+              decoration: InputDecoration(
+                labelText: 'Enter your address',
+                hintText: 'House #, Street, Barangay, City',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.house),
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            const TextField(
+              decoration: InputDecoration(
+                labelText: 'Enter your phone number',
+                hintText: '+63 000-000-0000',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.phone),
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
             ElevatedButton(
               child: const Text("Register"),
               onPressed: () async {
