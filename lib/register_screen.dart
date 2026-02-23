@@ -22,11 +22,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
         backgroundColor: Colors.blueGrey,
         title: const Text('Registration Page'),
       ),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(20.0),
         child: Column(
           children: [
             const SizedBox(height: 20),
+
+            const Text(
+              'Welcome!',
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                color: Colors.blueGrey,
+              ),
+            ),
+            const SizedBox(height: 30),
 
             TextField(
               controller: _nameController,
@@ -94,43 +104,85 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
             ),
 
+            const SizedBox(height: 30),
+
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blueGrey,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                child: const Text(
+                  "Register",
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                onPressed: () async {
+                  final name = _nameController.text.trim();
+                  final email = _emailController.text.trim();
+                  final password = _passwordController.text.trim();
+
+                  if (name.isEmpty || email.isEmpty || password.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("All fields are required")),
+                    );
+                    return;
+                  }
+
+                  final db = DBHelper();
+
+                  try {
+                    await db.registerUser(name, email, password);
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text("Registered successfully")),
+                      );
+                      Navigator.pop(context);
+                    }
+                  } catch (e) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          e.toString().contains('admin') ? "Admin email cannot be used" : "Email already exists",
+                        ),
+                      ),
+                    );
+                  }
+                },
+              ),
+            ),
+
             const SizedBox(height: 20),
 
-            ElevatedButton(
-              child: const Text("Register"),
-              onPressed: () async {
-                final name = _nameController.text.trim();
-                final email = _emailController.text.trim();
-                final password = _passwordController.text.trim();
-
-                if (name.isEmpty || email.isEmpty || password.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("All fields are required")),
-                  );
-                  return;
-                }
-
-                final db = DBHelper();
-
-                try {
-                  await db.registerUser(name, email, password);
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Registered successfully")),
-                    );
+            // Link to Login
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Text("Already have an account?"),
+                const SizedBox(width: 5),
+                GestureDetector(
+                  onTap: () {
                     Navigator.pop(context);
-                  }
-                } catch (e) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        e.toString().contains('admin') ? "Admin email cannot be used" : "Email already exists",
-                      ),
+                  },
+                  child: const Text(
+                    'Login',
+                    style: TextStyle(
+                      color: Colors.blueGrey,
+                      fontWeight: FontWeight.bold,
                     ),
-                  );
-                }
-              },
+                  ),
+                ),
+              ],
             ),
+            const SizedBox(height: 20),
           ],
         ),
       ),
