@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../db_helper.dart';
 import 'dashboard_screen.dart';
+import 'admin_dashboard.dart';
 import 'register_screen.dart';
 import 'forgot_password.dart';
 
@@ -80,21 +81,23 @@ class _LoginScreenState extends State<LoginScreen> {
                 final email = _emailController.text.trim();
                 final password = _passwordController.text.trim();
 
-                print("LOGIN ATTEMPT: $email");
-
                 final db = DBHelper();
                 final user = await db.login(email, password);
 
-                print("LOGIN RESULT: $user");
-
-                if (user != null) {
+                if (user != null && context.mounted) {
+                  final isAdmin = (user['isAdmin'] ?? 0) == 1;
                   Navigator.pushReplacement(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => DashboardScreen(
-                        userId: user['id'],
-                        userName: user['name'] ?? '',
-                      ),
+                      builder: (_) => isAdmin
+                          ? AdminDashboardScreen(
+                              userId: user['id'],
+                              userName: user['name'] ?? 'Admin',
+                            )
+                          : DashboardScreen(
+                              userId: user['id'],
+                              userName: user['name'] ?? '',
+                            ),
                     ),
                   );
                 } else {

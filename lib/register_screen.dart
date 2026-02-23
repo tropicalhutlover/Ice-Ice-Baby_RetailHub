@@ -114,17 +114,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                 try {
                   await db.registerUser(name, email, password);
-
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("Registered successfully")),
-                  );
-
-                  Navigator.pop(context);
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("Registered successfully")),
+                    );
+                    Navigator.pop(context);
+                  }
                 } catch (e) {
-                  print("REGISTER ERROR: $e");
-
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("Email already exists")),
+                    SnackBar(
+                      content: Text(
+                        e.toString().contains('admin') ? "Admin email cannot be used" : "Email already exists",
+                      ),
+                    ),
                   );
                 }
               },

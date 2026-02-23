@@ -41,14 +41,15 @@ class _ItemListScreenState extends State<ItemListScreen> {
 
   void placeOrder() async {
     final db = DBHelper();
+    final orderGroupId = DateTime.now().millisecondsSinceEpoch;
 
     for (var item in items) {
       final qty = quantities[item['id']] ?? 0;
       if (qty > 0) {
         final total = qty * (item['price'] as num).toDouble();
-
         await db.addOrder(
           widget.userId,
+          orderGroupId,
           item['name'],
           qty,
           total,
@@ -56,11 +57,12 @@ class _ItemListScreenState extends State<ItemListScreen> {
       }
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Order placed successfully')),
-    );
-
-    Navigator.pop(context);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Order placed successfully')),
+      );
+      Navigator.pop(context);
+    }
   }
 
   @override
