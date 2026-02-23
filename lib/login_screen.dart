@@ -24,29 +24,33 @@ class _LoginScreenState extends State<LoginScreen> {
       appBar: AppBar(
         backgroundColor: Colors.blueGrey,
         title: const Text('Login Page'),
+        centerTitle: true,
       ),
       body: Padding(
         padding: const EdgeInsets.all(20.0),
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const SizedBox(height: 20),
             const Text(
               'Welcome!',
-              style: TextStyle(fontSize: 20),
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
             ),
-
-            const SizedBox(height: 20),
+            const SizedBox(height: 30),
 
             // Email
             TextField(
               controller: _emailController,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Enter your email',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.email),
+                prefixIcon: const Icon(Icons.email),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
             ),
-
             const SizedBox(height: 20),
 
             // Password
@@ -55,8 +59,10 @@ class _LoginScreenState extends State<LoginScreen> {
               obscureText: _passwordHidden,
               decoration: InputDecoration(
                 labelText: 'Enter your password',
-                border: const OutlineInputBorder(),
                 prefixIcon: const Icon(Icons.lock),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
                 suffixIcon: IconButton(
                   icon: Icon(
                     _passwordHidden
@@ -71,43 +77,64 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
             ),
-
-            const SizedBox(height: 20),
+            const SizedBox(height: 30),
 
             // Login
-            ElevatedButton(
-              child: const Text('Login'),
-              onPressed: () async {
-                final email = _emailController.text.trim();
-                final password = _passwordController.text.trim();
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blueGrey,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                child: const Text(
+                  'Login',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                onPressed: () async {
+                  final email = _emailController.text.trim();
+                  final password = _passwordController.text.trim();
 
-                final db = DBHelper();
-                final user = await db.login(email, password);
+                  final db = DBHelper();
+                  final user = await db.login(email, password);
 
-                if (user != null && context.mounted) {
-                  final isAdmin = (user['isAdmin'] ?? 0) == 1;
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => isAdmin
-                          ? AdminDashboardScreen(
-                              userId: user['id'],
-                              userName: user['name'] ?? 'Admin',
-                            )
-                          : DashboardScreen(
-                              userId: user['id'],
-                              userName: user['name'] ?? '',
-                            ),
-                    ),
-                  );
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("User does not exist or wrong password")),
-                  );
-                }
-              },
+                  if (user != null && context.mounted) {
+                    final isAdmin = (user['isAdmin'] ?? 0) == 1;
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => isAdmin
+                            ? AdminDashboardScreen(
+                          userId: user['id'],
+                          userName: user['name'] ?? 'Admin',
+                        )
+                            : DashboardScreen(
+                          userId: user['id'],
+                          userName: user['name'] ?? '',
+                        ),
+                      ),
+                    );
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text("User does not exist or wrong password"),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                },
+              ),
             ),
+            const SizedBox(height: 20),
 
+            // Create Account
             TextButton(
               onPressed: () {
                 Navigator.push(
@@ -117,9 +144,16 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 );
               },
-              child: const Text("Create Account"),
+              child: const Text(
+                "Create Account",
+                style: TextStyle(
+                  color: Colors.blueGrey,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
 
+            // Forgot Password
             TextButton(
               onPressed: () {
                 Navigator.push(
@@ -129,7 +163,12 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 );
               },
-              child: const Text("Forgot Password?"),
+              child: const Text(
+                "Forgot Password?",
+                style: TextStyle(
+                  color: Colors.blueGrey,
+                ),
+              ),
             ),
           ],
         ),
