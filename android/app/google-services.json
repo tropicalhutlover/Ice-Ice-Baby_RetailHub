@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "616518390554",
+    "firebase_url": "https://iceicebaby-62b65-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "iceicebaby-62b65",
+    "storage_bucket": "iceicebaby-62b65.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:616518390554:android:2e380dc317a8935e2752a3",
+        "android_client_info": {
+          "package_name": "com.example.mobapp2_icecream"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD3twh8PLksNDZOhb9bMAhf0tozQ6Qx1SM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

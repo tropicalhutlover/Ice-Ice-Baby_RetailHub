@@ -10,47 +10,30 @@ class ForgotPassword extends StatefulWidget {
 
 class _ForgotPasswordScreenState extends State<ForgotPassword> {
   final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _newPasswordController = TextEditingController();
-  final TextEditingController _confirmPasswordController =
-  TextEditingController();
-
-  bool _isNewPasswordHidden = true;
-  bool _isConfirmPasswordHidden = true;
 
   String _feedbackMessage = "";
 
-  void _updatePassword() async {
+  void _sendResetLink() async {
     final email = _emailController.text.trim();
-    final newPassword = _newPasswordController.text;
-    final confirmPassword = _confirmPasswordController.text;
 
-    if (email.isEmpty || newPassword.isEmpty || confirmPassword.isEmpty) {
+    if (email.isEmpty) {
       setState(() {
-        _feedbackMessage = "Please fill in all fields.";
-      });
-      return;
-    }
-
-    if (newPassword != confirmPassword) {
-      setState(() {
-        _feedbackMessage = "Passwords do not match.";
+        _feedbackMessage = "Please enter your email.";
       });
       return;
     }
 
     final db = DBHelper();
-    final updatedRows = await db.updatePassword(email, newPassword);
+    final updatedRows = await db.updatePassword(email, '');
 
     if (updatedRows > 0) {
       setState(() {
-        _feedbackMessage = "Password Updated!";
+        _feedbackMessage = "Password reset email sent.";
       });
       _emailController.clear();
-      _newPasswordController.clear();
-      _confirmPasswordController.clear();
     } else {
       setState(() {
-        _feedbackMessage = "User with this email does not exist.";
+        _feedbackMessage = "Could not send reset email for this account.";
       });
     }
   }
@@ -60,7 +43,7 @@ class _ForgotPasswordScreenState extends State<ForgotPassword> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.blueGrey,
-        title: const Text('Change Password'),
+        title: const Text('Forgot Password'),
       ),
       body: Padding(
         padding: const EdgeInsets.all(20.0),
@@ -85,7 +68,7 @@ class _ForgotPasswordScreenState extends State<ForgotPassword> {
 
             // Instruction Text
             const Text(
-              'Forgot Your Password?',
+              'Reset Your Password',
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
@@ -96,7 +79,7 @@ class _ForgotPasswordScreenState extends State<ForgotPassword> {
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 20),
               child: Text(
-                "Enter your email and new password to reset.",
+                "Enter your account email and we will send a reset link.",
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 14,
@@ -117,38 +100,13 @@ class _ForgotPasswordScreenState extends State<ForgotPassword> {
               ),
             ),
             const SizedBox(height: 20),
-
-            _buildPasswordTextField(
-              controller: _newPasswordController,
-              label: 'Enter your new password',
-              hint: '8–16 characters',
-              obscureText: _isNewPasswordHidden,
-              toggleVisibility: () {
-                setState(() {
-                  _isNewPasswordHidden = !_isNewPasswordHidden;
-                });
-              },
-            ),
-            const SizedBox(height: 20),
-
-            _buildPasswordTextField(
-              controller: _confirmPasswordController,
-              label: 'Re-enter your new password',
-              hint: '8–16 characters',
-              obscureText: _isConfirmPasswordHidden,
-              toggleVisibility: () {
-                setState(() {
-                  _isConfirmPasswordHidden = !_isConfirmPasswordHidden;
-                });
-              },
-            ),
             const SizedBox(height: 30),
 
             SizedBox(
               width: double.infinity,
               height: 50,
               child: ElevatedButton(
-                onPressed: _updatePassword,
+                onPressed: _sendResetLink,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blueGrey,
                   shape: RoundedRectangleBorder(
@@ -156,7 +114,7 @@ class _ForgotPasswordScreenState extends State<ForgotPassword> {
                   ),
                 ),
                 child: const Text(
-                  'Update Password',
+                  'Send Reset Link',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -170,7 +128,7 @@ class _ForgotPasswordScreenState extends State<ForgotPassword> {
             Text(
               _feedbackMessage,
               style: TextStyle(
-                color: _feedbackMessage == "Password Updated!"
+                color: _feedbackMessage == "Password reset email sent."
                     ? Colors.green
                     : Colors.red,
               ),
@@ -178,33 +136,6 @@ class _ForgotPasswordScreenState extends State<ForgotPassword> {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildPasswordTextField({
-    required TextEditingController controller,
-    required String label,
-    required String hint,
-    required bool obscureText,
-    required VoidCallback toggleVisibility,
-  }) {
-    return TextField(
-      controller: controller,
-      obscureText: obscureText,
-      decoration: InputDecoration(
-        labelText: label,
-        hintText: hint,
-        suffixIcon: IconButton(
-          icon: Icon(
-            obscureText ? Icons.visibility : Icons.visibility_off,
-          ),
-          onPressed: toggleVisibility,
-        ),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-        ),
-        prefixIcon: const Icon(Icons.lock),
       ),
     );
   }

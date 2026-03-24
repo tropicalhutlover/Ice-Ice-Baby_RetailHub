@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'db_helper.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -140,19 +141,39 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                   try {
                     await db.registerUser(name, email, password);
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                            content: Text("Registered successfully")),
-                      );
-                      Navigator.pop(context);
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                          content: Text("Registered successfully")),
+                    );
+                    Navigator.pop(context);
+                  } on FirebaseAuthException catch (e) {
+                    if (!context.mounted) return;
+                    String message;
+                    switch (e.code) {
+                      case 'email-already-in-use':
+                        message = 'Email already exists';
+                        break;
+                      case 'weak-password':
+                        message = 'Password is too weak (minimum 6 characters)';
+                        break;
+                      case 'invalid-email':
+                        message = 'Invalid email format';
+                        break;
+                      case 'operation-not-allowed':
+                        message = 'Email/Password sign-in is not enabled in Firebase';
+                        break;
+                      default:
+                        message = e.message ?? 'Registration failed. Please try again.';
                     }
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(message)),
+                    );
                   } catch (e) {
+                    if (!context.mounted) return;
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text(
-                          e.toString().contains('admin') ? "Admin email cannot be used" : "Email already exists",
-                        ),
+                        content: Text("Registration failed. Please try again."),
                       ),
                     );
                   }

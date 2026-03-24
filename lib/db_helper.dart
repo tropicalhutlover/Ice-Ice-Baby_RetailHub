@@ -1,163 +1,153 @@
-import 'dart:convert';
-import 'package:crypto/crypto.dart';
-import 'package:path/path.dart';
-import 'package:sqflite/sqflite.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart';
 
 class DBHelper {
-  static Database? _db;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final DatabaseReference _root = FirebaseDatabase.instance.ref();
 
-  Future<Database> get database async {
-    if (_db != null) return _db!;
-    _db = await _initDB();
-    return _db!;
+  int _nextIntId() {
+    return DateTime.now().microsecondsSinceEpoch;
   }
 
-  static const String adminEmail = 'admin@icecream.com';
-  static const String adminPassword = 'admin123';
+  List<Map<String, dynamic>> _snapshotToList(DataSnapshot snapshot) {
+    if (!snapshot.exists || snapshot.value == null) return [];
 
-  Future<Database> _initDB() async {
-    String path = join(await getDatabasesPath(), 'icecream_app.db');
+    final raw = snapshot.value;
+    if (raw is! Map) return [];
 
-    return await openDatabase(
-      path,
-      version: 6,
-      onCreate: _createDB,
-      onUpgrade: _upgradeDB,
-    );
+    final list = <Map<String, dynamic>>[];
+    raw.forEach((key, value) {
+      if (value is Map) {
+        final map = Map<String, dynamic>.from(value.cast<String, dynamic>());
+        map['id'] ??= int.tryParse(key.toString()) ?? _nextIntId();
+        list.add(map);
+      }
+    });
+    return list;
   }
 
-  Future<void> _upgradeDB(Database db, int oldVersion, int newVersion) async {
-    if (oldVersion < 5) {
-      await db.execute('ALTER TABLE users ADD COLUMN isAdmin INTEGER DEFAULT 0');
-      await db.execute('ALTER TABLE orders ADD COLUMN status TEXT DEFAULT \'pending\'');
-    }
-    if (oldVersion < 6) {
-      await db.execute('ALTER TABLE orders ADD COLUMN orderGroupId INTEGER');
-      await db.rawUpdate('UPDATE orders SET orderGroupId = id WHERE orderGroupId IS NULL');
-    }
-  }
+  Future<DatabaseReference> _itemsRef() async => _root.child('items');
+
+  Future<DatabaseReference> _ordersRef() async => _root.child('orders');
+
+  Future<DatabaseReference> _usersRef() async => _root.child('users');
 
   Future<bool> userExists(String email) async {
-    final db = await database;
-    final result =
-    await db.query('users', where: 'email = ?', whereArgs: [email]);
-    return result.isNotEmpty;
-  }
-
-  // Tables
-  Future _createDB(Database db, int version) async {
-    await db.execute('''
-      CREATE TABLE users(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT,
-        email TEXT UNIQUE,
-        password TEXT,
-        isAdmin INTEGER DEFAULT 0
-      )
-    ''');
-
-    await db.execute('''
-      CREATE TABLE items(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT,
-        price REAL
-      )
-    ''');
-
-    await db.execute('''
-      CREATE TABLE orders(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        userId INTEGER,
-        orderGroupId INTEGER,
-        itemName TEXT,
-        qty INTEGER,
-        total REAL,
-        status TEXT DEFAULT 'pending'
-      )
-    ''');
-  }
-
-  // Password
-  String hashPassword(String password) {
-    final bytes = utf8.encode(password);
-    final digest = sha256.convert(bytes);
-    return digest.toString();
+    final methods = await _auth.fetchSignInMethodsForEmail(email.trim());
+    return methods.isNotEmpty;
   }
 
   Future<int> updatePassword(String email, String newPassword) async {
-    final db = await database;
-    final hashedPassword = hashPassword(newPassword);
-    return await db.update(
-      'users',
-      {'password': hashedPassword},
-      where: 'email = ?',
-      whereArgs: [email],
-    );
+    try {
+      await _auth.sendPasswordResetEmail(email: email.trim());
+      return 1;
+    } on FirebaseAuthException {
+      return 0;
+    }
   }
 
-
-  // Register User
   Future<int> registerUser(String name, String email, String password) async {
-    if (email.toLowerCase() == adminEmail) {
-      throw Exception('Cannot register admin account');
+    final normalizedEmail = email.trim().toLowerCase();
+
+    final existingMethods =
+        await _auth.fetchSignInMethodsForEmail(normalizedEmail);
+    if (existingMethods.isNotEmpty) {
+      throw FirebaseAuthException(
+        code: 'email-already-in-use',
+        message: 'An account already exists for this email.',
+      );
     }
-    final db = await database;
-    final result = await db.insert(
-      'users',
-      {
-        'name': name,
-        'email': email,
-        'password': hashPassword(password),
-        'isAdmin': 0,
-      },
-      conflictAlgorithm: ConflictAlgorithm.fail,
+
+    final cred = await _auth.createUserWithEmailAndPassword(
+      email: normalizedEmail,
+      password: password,
     );
-    return result;
+
+    try {
+      final userId = _nextIntId();
+      await (await _usersRef()).child(cred.user!.uid).set({
+        'id': userId,
+        'name': name.trim(),
+        'email': normalizedEmail,
+        'isAdmin': 0,
+      });
+
+      return userId;
+    } catch (_) {
+      // Avoid orphan auth users when profile write to database fails.
+      await cred.user?.delete();
+      rethrow;
+    }
   }
 
-
-  // Login (admin: admin@icecream.com / admin123)
   Future<Map<String, dynamic>?> login(String email, String password) async {
-    if (email.toLowerCase() == adminEmail && password == adminPassword) {
-      return {
-        'id': -1,
-        'name': 'Admin',
-        'email': adminEmail,
-        'isAdmin': 1,
-      };
+    final normalizedEmail = email.trim().toLowerCase();
+
+    try {
+      final cred = await _auth.signInWithEmailAndPassword(
+        email: normalizedEmail,
+        password: password,
+      );
+
+      final snap = await (await _usersRef()).child(cred.user!.uid).get();
+      if (!snap.exists || snap.value == null) {
+        final userId = _nextIntId();
+        final fallbackProfile = {
+          'id': userId,
+          'name': cred.user?.displayName ??
+              cred.user?.email?.split('@').first ??
+              'User',
+          'email': normalizedEmail,
+          'isAdmin': 0,
+        };
+        await (await _usersRef()).child(cred.user!.uid).set(fallbackProfile);
+        return fallbackProfile;
+      }
+
+      final data = Map<String, dynamic>.from(
+        (snap.value as Map).cast<String, dynamic>(),
+      );
+      data['email'] ??= normalizedEmail;
+      data['isAdmin'] ??= 0;
+      return data;
+    } on FirebaseAuthException {
+      return null;
     }
-    final db = await database;
-    final result = await db.query(
-      'users',
-      where: 'email = ? AND password = ?',
-      whereArgs: [email, hashPassword(password)],
-    );
-    if (result.isNotEmpty) return result.first;
-    return null;
   }
 
   Future<Map<String, dynamic>?> getUserById(int id) async {
     if (id < 0) return null;
-    final db = await database;
-    final r = await db.query('users', where: 'id = ?', whereArgs: [id]);
-    return r.isNotEmpty ? r.first : null;
+
+    final users = await (await _usersRef())
+        .orderByChild('id')
+        .equalTo(id)
+        .limitToFirst(1)
+        .get();
+    final list = _snapshotToList(users);
+    return list.isNotEmpty ? list.first : null;
   }
 
-  // Item List
   Future insertItem(String name, double price) async {
-    final db = await database;
-    await db.insert('items', {'name': name, 'price': price});
+    final id = _nextIntId();
+    await (await _itemsRef()).child(id.toString()).set({
+      'id': id,
+      'name': name,
+      'price': price,
+    });
   }
 
   Future<List<Map<String, dynamic>>> getItems() async {
-    final db = await database;
-    return db.query('items');
+    final snap = await (await _itemsRef()).get();
+    final items = _snapshotToList(snap);
+    items.sort((a, b) =>
+        (a['name']?.toString() ?? '').compareTo(b['name']?.toString() ?? ''));
+    return items;
   }
 
-  // Order List
   Future addOrder(int userId, int orderGroupId, String item, int qty, double total) async {
-    final db = await database;
-    await db.insert('orders', {
+    final id = _nextIntId();
+    await (await _ordersRef()).child(id.toString()).set({
+      'id': id,
       'userId': userId,
       'orderGroupId': orderGroupId,
       'itemName': item,
@@ -168,48 +158,48 @@ class DBHelper {
   }
 
   Future<List<Map<String, dynamic>>> getOrders(int userId) async {
-    final db = await database;
-    return db.query('orders', where: 'userId=?', whereArgs: [userId]);
+    final snap = await (await _ordersRef())
+        .orderByChild('userId')
+        .equalTo(userId)
+        .get();
+    final rows = _snapshotToList(snap);
+    rows.sort((a, b) => ((b['id'] as num?) ?? 0).compareTo((a['id'] as num?) ?? 0));
+    return rows;
   }
 
   Future<List<Map<String, dynamic>>> getAllOrders() async {
-    final db = await database;
-    return db.query('orders', orderBy: 'id DESC');
+    final snap = await (await _ordersRef()).get();
+    final rows = _snapshotToList(snap);
+    rows.sort((a, b) => ((b['id'] as num?) ?? 0).compareTo((a['id'] as num?) ?? 0));
+    return rows;
   }
 
   Future<void> updateOrderStatus(int orderId, String status) async {
-    final db = await database;
-    await db.update(
-      'orders',
-      {'status': status},
-      where: 'id = ?',
-      whereArgs: [orderId],
-    );
+    await (await _ordersRef()).child(orderId.toString()).update({'status': status});
   }
 
   Future<void> updateOrderGroupStatus(int orderGroupId, String status) async {
-    final db = await database;
-    await db.update(
-      'orders',
-      {'status': status},
-      where: 'orderGroupId = ?',
-      whereArgs: [orderGroupId],
-    );
+    final snap = await (await _ordersRef())
+        .orderByChild('orderGroupId')
+        .equalTo(orderGroupId)
+        .get();
+    if (!snap.exists || snap.value == null) return;
+
+    final raw = snap.value;
+    if (raw is! Map) return;
+    for (final entry in raw.entries) {
+      await (await _ordersRef()).child(entry.key.toString()).update({'status': status});
+    }
   }
 
-  // edit & delete
   Future<void> updateItem(int id, String name, double price) async {
-    final db = await database;
-    await db.update(
-      'items',
-      {'name': name, 'price': price},
-      where: 'id = ?',
-      whereArgs: [id],
-    );
+    await (await _itemsRef()).child(id.toString()).update({
+      'name': name,
+      'price': price,
+    });
   }
 
   Future<void> deleteItem(int id) async {
-    final db = await database;
-    await db.delete('items', where: 'id = ?', whereArgs: [id]);
+    await (await _itemsRef()).child(id.toString()).remove();
   }
 }

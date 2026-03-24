@@ -5,8 +5,12 @@
 import FlutterMacOS
 import Foundation
 
-import sqflite_darwin
+import firebase_auth
+import firebase_core
+import firebase_database
 
 func RegisterGeneratedPlugins(registry: FlutterPluginRegistry) {
-  SqflitePlugin.register(with: registry.registrar(forPlugin: "SqflitePlugin"))
+  FLTFirebaseAuthPlugin.register(with: registry.registrar(forPlugin: "FLTFirebaseAuthPlugin"))
+  FLTFirebaseCorePlugin.register(with: registry.registrar(forPlugin: "FLTFirebaseCorePlugin"))
+  FLTFirebaseDatabasePlugin.register(with: registry.registrar(forPlugin: "FLTFirebaseDatabasePlugin"))
 }

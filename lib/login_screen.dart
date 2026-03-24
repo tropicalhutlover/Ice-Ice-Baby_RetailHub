@@ -104,8 +104,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   final db = DBHelper();
                   final user = await db.login(email, password);
+                  if (!context.mounted) return;
 
-                  if (user != null && context.mounted) {
+                  if (user != null) {
                     final isAdmin = (user['isAdmin'] ?? 0) == 1;
                     Navigator.pushReplacement(
                       context,

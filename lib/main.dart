@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 import 'welcome_screen.dart';
 
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   runApp(const RetailApp());
 }
 
 class RetailApp extends StatelessWidget {
-  const RetailApp({Key? key}) : super(key: key);
+  const RetailApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -22,4 +27,3 @@ class RetailApp extends StatelessWidget {
     );
   }
 }
-
