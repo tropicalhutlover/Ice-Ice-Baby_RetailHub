@@ -18,6 +18,7 @@ class _AddIceCreamScreenState extends State<AddIceCreamScreen> {
   final description = TextEditingController();
   final supplier = TextEditingController();
   final imageUrl = TextEditingController();
+  final dateAdded = TextEditingController();
 
   Future<void> _addItem() async {
     try {
@@ -25,16 +26,13 @@ class _AddIceCreamScreenState extends State<AddIceCreamScreen> {
         'name': name.text,
         'sku': sku.text,
         'category': category.text,
-
-        // ✅ FIX: send as STRING (matches your rules)
         'basePrice': basePrice.text,
         'discountedPrice': discountedPrice.text,
         'stockQty': stock.text,
-
         'description': description.text,
         'supplier': supplier.text,
-        'dateAdded': DateTime.now().toIso8601String(),
         'imageUrl': imageUrl.text,
+        'dateAdded': dateAdded.text,
       });
 
       Navigator.pop(context);
@@ -80,6 +78,8 @@ class _AddIceCreamScreenState extends State<AddIceCreamScreen> {
           field('Description', description),
           field('Supplier', supplier),
           field('Image URL', imageUrl),
+          field('Date Added (e.g. 2026-03-25)', dateAdded),
+
           ElevatedButton(
             onPressed: _addItem,
             child: const Text('Add'),
