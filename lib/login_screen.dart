@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../db_helper.dart';
+import 'db_helper.dart';
 import 'dashboard_screen.dart';
 import 'admin_dashboard.dart';
 import 'register_screen.dart';
