@@ -38,14 +38,15 @@ class _ItemListScreenState extends State<ItemListScreen> {
       final qty = quantities[item['id']] ?? 0;
 
       if (qty > 0) {
-        final price = (item['discountedPrice'] ?? 0) as num;
+        final price =
+            double.tryParse(item['discountedPrice'].toString()) ?? 0;
 
         await db.addOrder(
           widget.userId,
           orderGroupId,
           item['name'],
           qty,
-          qty * price.toDouble(),
+          qty * price,
         );
       }
     }
@@ -72,18 +73,29 @@ class _ItemListScreenState extends State<ItemListScreen> {
   }
 
   Widget _itemCard(Map<String, dynamic> item) {
-    final qty = quantities[item['id']] ?? 0;
+    final id = item['id'];
+    final qty = quantities[id] ?? 0;
+
+    int stock = int.tryParse(item['stockQty'].toString()) ?? 0;
 
     return Card(
       child: ListTile(
-        title: Text(item['name']),
+        title: Text('${item['name']}'),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('Category: ${item['category']}'),
-            Text('Price: ₱${item['discountedPrice']}'),
-            Text('Stock: ${item['stockQty']}'),
-            Text(item['description'] ?? ''),
+            Text('Base Price: ₱${item['basePrice']}'),
+            Text('Discounted Price: ₱${item['discountedPrice']}'),
+            Text('Stock: $stock'),
+
+            if (stock == 0)
+              const Text(
+                'Out of Stock',
+                style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+              ),
+
+            Text('Description: ${item['description'] ?? ''}'),
           ],
         ),
         trailing: Row(
@@ -92,21 +104,36 @@ class _ItemListScreenState extends State<ItemListScreen> {
             IconButton(
               icon: const Icon(Icons.remove),
               onPressed: qty > 0
-                  ? () {
+                  ? () async {
                 setState(() {
-                  quantities[item['id']] = qty - 1;
+                  quantities[id] = qty - 1;
+                  stock += 1;
+                  item['stockQty'] = stock.toString();
+                });
+
+                await DBHelper().updateItem(id, {
+                  'stockQty': stock.toString(),
                 });
               }
                   : null,
             ),
+
             Text(qty.toString()),
             IconButton(
               icon: const Icon(Icons.add),
-              onPressed: () {
+              onPressed: stock > 0
+                  ? () async {
                 setState(() {
-                  quantities[item['id']] = qty + 1;
+                  quantities[id] = qty + 1;
+                  stock -= 1;
+                  item['stockQty'] = stock.toString();
                 });
-              },
+
+                await DBHelper().updateItem(id, {
+                  'stockQty': stock.toString(),
+                });
+              }
+                  : null,
             ),
           ],
         ),
