@@ -23,85 +23,76 @@ class _AdminItemListScreenState extends State<AdminItemListScreen> {
     setState(() => _items = items);
   }
 
-  Future<void> _editItem(Map<String, dynamic> item) async {
-    final nameController = TextEditingController(text: item['name']?.toString() ?? '');
-    final priceController = TextEditingController(text: item['price']?.toString() ?? '');
+  Future<void> _deleteItem(Map item) async {
+    await DBHelper().deleteItem(item['id']);
+    _loadItems();
+  }
 
-    final result = await showDialog<bool>(
+  void _showEditDialog(Map item) {
+    final name = TextEditingController(text: item['name']?.toString() ?? '');
+    final sku = TextEditingController(text: item['sku']?.toString() ?? '');
+    final category = TextEditingController(text: item['category']?.toString() ?? '');
+    final basePrice = TextEditingController(text: item['basePrice']?.toString() ?? '');
+    final discountedPrice = TextEditingController(text: item['discountedPrice']?.toString() ?? '');
+    final stockQty = TextEditingController(text: item['stockQty']?.toString() ?? '');
+    final supplier = TextEditingController(text: item['supplier']?.toString() ?? '');
+    final description = TextEditingController(text: item['description']?.toString() ?? '');
+
+    showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (_) => AlertDialog(
         title: const Text('Edit Ice Cream'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: nameController,
-              decoration: const InputDecoration(labelText: 'Name'),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: priceController,
-              decoration: const InputDecoration(labelText: 'Price (₱)'),
-              keyboardType: TextInputType.number,
-            ),
-          ],
+        content: SingleChildScrollView(
+          child: Column(
+            children: [
+              TextField(controller: name, decoration: const InputDecoration(labelText: 'Name')),
+              TextField(controller: sku, decoration: const InputDecoration(labelText: 'SKU')),
+              TextField(controller: category, decoration: const InputDecoration(labelText: 'Category')),
+              TextField(controller: basePrice, decoration: const InputDecoration(labelText: 'Base Price')),
+              TextField(controller: discountedPrice, decoration: const InputDecoration(labelText: 'Discounted Price')),
+              TextField(controller: stockQty, decoration: const InputDecoration(labelText: 'Stock Qty')),
+              TextField(controller: supplier, decoration: const InputDecoration(labelText: 'Supplier')),
+              TextField(controller: description, decoration: const InputDecoration(labelText: 'Description')),
+            ],
+          ),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
+            onPressed: () => Navigator.pop(context),
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Save'),
+            onPressed: () async {
+              final id = item['id'];
+              if (id == null) return;
+
+              try {
+                await DBHelper().updateItem(id, {
+                  'name': name.text,
+                  'sku': sku.text,
+                  'category': category.text,
+                  'basePrice': basePrice.text,
+                  'discountedPrice': discountedPrice.text,
+                  'stockQty': stockQty.text,
+                  'supplier': supplier.text,
+                  'description': description.text,
+                });
+
+                Navigator.pop(context);
+                _loadItems();
+              } catch (e) {
+                print("UPDATE ERROR: $e");
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text("Update failed: $e")),
+                );
+              }
+            },
+            child: const Text('Update'),
           ),
         ],
       ),
     );
-
-    if (result == true) {
-      final name = nameController.text.trim();
-      final price = double.tryParse(priceController.text.trim());
-      if (name.isNotEmpty && price != null && price >= 0) {
-        await DBHelper().updateItem(item['id'], name, price);
-        _loadItems();
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Updated')),
-          );
-        }
-      }
-    }
-  }
-
-  Future<void> _deleteItem(Map<String, dynamic> item) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Remove item?'),
-        content: Text('Remove "${item['name']}"?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Remove'),
-          ),
-        ],
-      ),
-    );
-    if (confirm == true) {
-      await DBHelper().deleteItem(item['id']);
-      _loadItems();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Removed')),
-        );
-      }
-    }
   }
 
   @override
@@ -109,8 +100,6 @@ class _AdminItemListScreenState extends State<AdminItemListScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Manage Ice Cream'),
-        backgroundColor: Colors.blue,
-        centerTitle: true,
         actions: [
           IconButton(
             icon: const Icon(Icons.add),
@@ -124,80 +113,44 @@ class _AdminItemListScreenState extends State<AdminItemListScreen> {
           ),
         ],
       ),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFFE3F2FD), Color(0xFFFFFFFF)],
-          ),
-        ),
-        child: _items.isEmpty
-            ? const Center(child: Text('No items yet. Add one!'))
-            : ListView.builder(
-                padding: const EdgeInsets.all(15),
-                itemCount: _items.length,
-                itemBuilder: (_, i) {
-                  final item = _items[i];
-                  return Card(
-                    margin: const EdgeInsets.only(bottom: 15),
-                    child: Padding(
-                      padding: const EdgeInsets.all(15),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 70,
-                            height: 70,
-                            decoration: BoxDecoration(
-                              color: Colors.blue[50],
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: const Icon(
-                              Icons.icecream,
-                              size: 40,
-                              color: Colors.blue,
-                            ),
-                          ),
-                          const SizedBox(width: 15),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  item['name']?.toString() ?? '',
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
-                                  ),
-                                ),
-                                const SizedBox(height: 5),
-                                Text(
-                                  '₱${item['price']}',
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    color: Colors.green,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.edit),
-                            onPressed: () => _editItem(item),
-                            color: Colors.blue,
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.delete),
-                            onPressed: () => _deleteItem(item),
-                            color: Colors.red,
-                          ),
-                        ],
+      body: ListView.builder(
+        itemCount: _items.length,
+        itemBuilder: (_, i) {
+          final item = _items[i];
+
+          return Card(
+            margin: const EdgeInsets.all(10),
+            child: Padding(
+              padding: const EdgeInsets.all(10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(item['name'], style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  Text('SKU: ${item['sku']}'),
+                  Text('Category: ${item['category']}'),
+                  Text('Base Price: ₱${item['basePrice']}'),
+                  Text('Discounted Price: ₱${item['discountedPrice']}'),
+                  Text('Stock: ${item['stockQty']}'),
+                  Text('Supplier: ${item['supplier']}'),
+                  Text('Description: ${item['description']}'),
+
+                  Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.edit, color: Colors.orange),
+                        onPressed: () => _showEditDialog(item),
                       ),
-                    ),
-                  );
-                },
+                      IconButton(
+                        icon: const Icon(Icons.delete, color: Colors.red),
+                        onPressed: () => _deleteItem(item),
+                      )
+                    ],
+                  )
+                ],
               ),
+            ),
+          );
+        },
       ),
     );
   }
