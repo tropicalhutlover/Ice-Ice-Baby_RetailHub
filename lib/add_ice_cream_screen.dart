@@ -9,99 +9,82 @@ class AddIceCreamScreen extends StatefulWidget {
 }
 
 class _AddIceCreamScreenState extends State<AddIceCreamScreen> {
-  final _nameController = TextEditingController();
-  final _priceController = TextEditingController();
-
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _priceController.dispose();
-    super.dispose();
-  }
+  final name = TextEditingController();
+  final sku = TextEditingController();
+  final category = TextEditingController();
+  final basePrice = TextEditingController();
+  final discountedPrice = TextEditingController();
+  final stock = TextEditingController();
+  final description = TextEditingController();
+  final supplier = TextEditingController();
+  final imageUrl = TextEditingController();
 
   Future<void> _addItem() async {
-    final name = _nameController.text.trim();
-    final priceStr = _priceController.text.trim();
+    try {
+      await DBHelper().insertItem({
+        'name': name.text,
+        'sku': sku.text,
+        'category': category.text,
 
-    if (name.isEmpty || priceStr.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Enter name and price')),
-      );
-      return;
-    }
+        // ✅ FIX: send as STRING (matches your rules)
+        'basePrice': basePrice.text,
+        'discountedPrice': discountedPrice.text,
+        'stockQty': stock.text,
 
-    final price = double.tryParse(priceStr);
-    if (price == null || price < 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Enter a valid price')),
-      );
-      return;
-    }
+        'description': description.text,
+        'supplier': supplier.text,
+        'dateAdded': DateTime.now().toIso8601String(),
+        'imageUrl': imageUrl.text,
+      });
 
-    await DBHelper().insertItem(name, price);
-    if (mounted) {
+      Navigator.pop(context);
+
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Ice cream added')),
+        const SnackBar(content: Text('Item added successfully')),
       );
-      _nameController.clear();
-      _priceController.clear();
+    } catch (e) {
+      print("ADD ERROR: $e");
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Add failed: $e')),
+      );
     }
+  }
+
+  Widget field(String label, TextEditingController c) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: TextField(
+        controller: c,
+        decoration: InputDecoration(
+          labelText: label,
+          border: const OutlineInputBorder(),
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Add Ice Cream'),
-        backgroundColor: Colors.blue,
-        centerTitle: true,
-      ),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFFE3F2FD), Color(0xFFFFFFFF)],
+      appBar: AppBar(title: const Text('Add Product')),
+      body: ListView(
+        padding: const EdgeInsets.all(15),
+        children: [
+          field('Name', name),
+          field('SKU', sku),
+          field('Category', category),
+          field('Base Price', basePrice),
+          field('Discounted Price', discountedPrice),
+          field('Stock Qty', stock),
+          field('Description', description),
+          field('Supplier', supplier),
+          field('Image URL', imageUrl),
+          ElevatedButton(
+            onPressed: _addItem,
+            child: const Text('Add'),
           ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            children: [
-              TextField(
-                controller: _nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Name',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _priceController,
-                decoration: const InputDecoration(
-                  labelText: 'Price (₱)',
-                  border: OutlineInputBorder(),
-                ),
-                keyboardType: TextInputType.number,
-              ),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _addItem,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                    minimumSize: const Size.fromHeight(52),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: const Text('Add'),
-                ),
-              ),
-            ],
-          ),
-        ),
+        ],
       ),
     );
   }
