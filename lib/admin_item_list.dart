@@ -37,6 +37,7 @@ class _AdminItemListScreenState extends State<AdminItemListScreen> {
     final stockQty = TextEditingController(text: item['stockQty']?.toString() ?? '');
     final supplier = TextEditingController(text: item['supplier']?.toString() ?? '');
     final description = TextEditingController(text: item['description']?.toString() ?? '');
+    final dateAdded = TextEditingController(text: item['dateAdded']?.toString() ?? '');
 
     showDialog(
       context: context,
@@ -53,6 +54,7 @@ class _AdminItemListScreenState extends State<AdminItemListScreen> {
               TextField(controller: stockQty, decoration: const InputDecoration(labelText: 'Stock Qty')),
               TextField(controller: supplier, decoration: const InputDecoration(labelText: 'Supplier')),
               TextField(controller: description, decoration: const InputDecoration(labelText: 'Description')),
+              TextField(controller: dateAdded, decoration: const InputDecoration(labelText: 'Date Added')),
             ],
           ),
         ),
@@ -76,6 +78,7 @@ class _AdminItemListScreenState extends State<AdminItemListScreen> {
                   'stockQty': stockQty.text,
                   'supplier': supplier.text,
                   'description': description.text,
+                  'dateAdded': dateAdded.text,
                 });
 
                 Navigator.pop(context);
@@ -133,6 +136,7 @@ class _AdminItemListScreenState extends State<AdminItemListScreen> {
                   Text('Stock: ${item['stockQty']}'),
                   Text('Supplier: ${item['supplier']}'),
                   Text('Description: ${item['description']}'),
+                  Text('Date Added: ${item['dateAdded']}'),
 
                   Row(
                     children: [
