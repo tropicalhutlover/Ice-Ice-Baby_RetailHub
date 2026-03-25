@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'cart_screen.dart';
 import 'db_helper.dart';
@@ -17,6 +19,7 @@ class _ItemListScreenState extends State<ItemListScreen> {
   final Map<int, int> quantities = {};
   bool _isLoadingItems = false;
   String? _loadError;
+  StreamSubscription<List<Product>>? _itemsSubscription;
 
   int get _cartCount {
     int count = 0;
@@ -29,41 +32,49 @@ class _ItemListScreenState extends State<ItemListScreen> {
   @override
   void initState() {
     super.initState();
-    loadItems();
+    _startItemsSubscription();
   }
 
-  void loadItems() async {
+  @override
+  void dispose() {
+    _itemsSubscription?.cancel();
+    super.dispose();
+  }
+
+  void _startItemsSubscription() {
+    _itemsSubscription?.cancel();
     setState(() {
       _isLoadingItems = true;
       _loadError = null;
     });
 
-    try {
-      final fetched = await DBHelper().getItems();
-      quantities.clear();
-      for (var item in fetched) {
-        if (item.id != null) {
-          quantities[item.id!] = 0;
+    _itemsSubscription = DBHelper().watchItems().listen(
+      (fetched) {
+        if (!mounted) return;
+        final currentIds = fetched.where((p) => p.id != null).map((p) => p.id!).toSet();
+
+        // Keep existing local cart quantities while syncing against live catalog updates.
+        quantities.removeWhere((key, _) => !currentIds.contains(key));
+        for (final p in fetched) {
+          if (p.id != null) {
+            quantities.putIfAbsent(p.id!, () => 0);
+          }
         }
-      }
-      if (!mounted) return;
-      setState(() {
-        items = fetched;
-        _isLoadingItems = false;
-      });
-    } catch (_) {
-      if (!mounted) return;
-      setState(() {
-        _isLoadingItems = false;
-        _loadError = 'Failed to load items. Please try again.';
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Failed to load items. Please try again.'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
+
+        setState(() {
+          items = fetched;
+          _isLoadingItems = false;
+          _loadError = null;
+        });
+      },
+      onError: (_) {
+        if (!mounted) return;
+        setState(() {
+          _isLoadingItems = false;
+          _loadError = 'Failed to load items. Please try again.';
+        });
+      },
+    );
   }
 
   void _openCart() async {
@@ -103,7 +114,10 @@ class _ItemListScreenState extends State<ItemListScreen> {
     setState(() {});
 
     if (result.checkedOut) {
-      loadItems();
+      quantities.clear();
+      if (mounted) {
+        Navigator.pop(context);
+      }
     }
   }
 
@@ -132,7 +146,11 @@ class _ItemListScreenState extends State<ItemListScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(result.message)),
     );
-    loadItems();
+    quantities.clear();
+    setState(() {});
+    if (mounted) {
+      Navigator.pop(context);
+    }
   }
 
   @override
@@ -181,7 +199,7 @@ class _ItemListScreenState extends State<ItemListScreen> {
                             Text(_loadError!),
                             const SizedBox(height: 12),
                             ElevatedButton(
-                              onPressed: loadItems,
+                              onPressed: _startItemsSubscription,
                               child: const Text('Retry'),
                             ),
                           ],
@@ -227,6 +245,28 @@ class _ItemListScreenState extends State<ItemListScreen> {
 
     return Card(
       child: ListTile(
+        leading: ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: item.imageUrl.isNotEmpty
+              ? Image.network(
+                  item.imageUrl,
+                  width: 52,
+                  height: 52,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Container(
+                    width: 52,
+                    height: 52,
+                    color: Colors.blue[50],
+                    child: const Icon(Icons.broken_image, color: Colors.grey),
+                  ),
+                )
+              : Container(
+                  width: 52,
+                  height: 52,
+                  color: Colors.blue[50],
+                  child: const Icon(Icons.icecream, color: Colors.blue),
+                ),
+        ),
         title: Text(item.name),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

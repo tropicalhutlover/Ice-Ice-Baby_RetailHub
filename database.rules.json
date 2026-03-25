@@ -1,0 +1,74 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+
+    "users": {
+      ".indexOn": ["id", "email", "isAdmin"],
+
+      ".read": "auth != null && (root.child('users').child(auth.uid).child('isAdmin').val() == 1 || root.child('users').child(auth.uid).child('isAdmin').val() == true || root.child('users').child(auth.uid).child('isAdmin').val() == '1')",
+
+      "$uid": {
+        ".read": "auth != null && ($uid == auth.uid || root.child('users').child(auth.uid).child('isAdmin').val() == 1 || root.child('users').child(auth.uid).child('isAdmin').val() == true || root.child('users').child(auth.uid).child('isAdmin').val() == '1')",
+        ".write": "auth != null && auth.uid == $uid",
+
+        "isAdmin": {
+          ".validate": "(!data.exists() && newData.val() == 0) || (data.exists() && newData.val() == data.val())"
+        },
+        "email": { ".validate": "newData.isString()" },
+        "name": { ".validate": "newData.isString()" },
+        "address": { ".validate": "newData.isString()" },
+        "phone": { ".validate": "newData.isString()" },
+        "id": { ".validate": "newData.isNumber()" }
+      }
+    },
+
+    "items": {
+      ".read": "auth != null",
+      ".write": false,
+
+      "$itemId": {
+        ".write": "auth != null && (root.child('users').child(auth.uid).child('isAdmin').val() == 1 || root.child('users').child(auth.uid).child('isAdmin').val() == true || root.child('users').child(auth.uid).child('isAdmin').val() == '1')",
+
+        ".validate": "newData.hasChildren(['id','name','basePrice','stockQty'])",
+        "id": { ".validate": "newData.isNumber()" },
+        "name": { ".validate": "newData.isString() && newData.val().length > 0" },
+        "sku": { ".validate": "newData.isString()" },
+        "category": { ".validate": "newData.isString()" },
+        "basePrice": { ".validate": "newData.isString()" },
+        "discountedPrice": { ".validate": "newData.isString()" },
+
+        "stockQty": {
+          ".write": "auth != null",
+          ".validate": "newData.isString()"
+        },
+
+        "supplier": { ".validate": "newData.isString()" },
+        "description": { ".validate": "newData.isString()" },
+        "imageUrl": { ".validate": "newData.isString()" },
+        "dateAdded": { ".validate": "newData.isString()" }
+      }
+    },
+
+    "orders": {
+      ".indexOn": ["userId", "orderGroupId"],
+
+      ".read": "auth != null && ((root.child('users').child(auth.uid).child('isAdmin').val() == 1 || root.child('users').child(auth.uid).child('isAdmin').val() == true || root.child('users').child(auth.uid).child('isAdmin').val() == '1') || (query.orderByChild == 'userId' && query.equalTo == root.child('users').child(auth.uid).child('id').val()))",
+
+      "$orderId": {
+        ".read": "auth != null && ((root.child('users').child(auth.uid).child('isAdmin').val() == 1 || root.child('users').child(auth.uid).child('isAdmin').val() == true || root.child('users').child(auth.uid).child('isAdmin').val() == '1') || data.child('userId').val() == root.child('users').child(auth.uid).child('id').val())",
+
+        ".write": "auth != null && ((root.child('users').child(auth.uid).child('isAdmin').val() == 1 || root.child('users').child(auth.uid).child('isAdmin').val() == true || root.child('users').child(auth.uid).child('isAdmin').val() == '1') || (!data.exists() && newData.child('userId').val() == root.child('users').child(auth.uid).child('id').val() && newData.child('status').val() == 'pending'))",
+
+        ".validate": "newData.hasChildren(['id','userId','orderGroupId','itemName','qty','total','status'])",
+        "id": { ".validate": "newData.isNumber()" },
+        "userId": { ".validate": "newData.isNumber()" },
+        "orderGroupId": { ".validate": "newData.isNumber()" },
+        "itemName": { ".validate": "newData.isString() && newData.val().length > 0" },
+        "qty": { ".validate": "newData.isNumber() && newData.val() > 0" },
+        "total": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+        "status": { ".validate": "newData.val() == 'pending' || newData.val() == 'preparing' || newData.val() == 'done'" }
+      }
+    }
+  }
+}

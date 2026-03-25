@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'db_helper.dart';
 import 'add_ice_cream_screen.dart';
+import 'db_helper.dart';
 import 'models/product.dart';
 
 class AdminItemListScreen extends StatefulWidget {
@@ -11,44 +11,7 @@ class AdminItemListScreen extends StatefulWidget {
 }
 
 class _AdminItemListScreenState extends State<AdminItemListScreen> {
-  List<Product> _items = [];
-  bool _isLoadingItems = false;
-  String? _loadError;
   final Set<int> _busyItemIds = <int>{};
-
-  @override
-  void initState() {
-    super.initState();
-    _loadItems();
-  }
-
-  Future<void> _loadItems() async {
-    setState(() {
-      _isLoadingItems = true;
-      _loadError = null;
-    });
-
-    try {
-      final items = await DBHelper().getItems();
-      if (!mounted) return;
-      setState(() {
-        _items = items;
-        _isLoadingItems = false;
-      });
-    } catch (_) {
-      if (!mounted) return;
-      setState(() {
-        _isLoadingItems = false;
-        _loadError = 'Failed to load items. Please try again.';
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Failed to load items. Please try again.'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
 
   Future<void> _deleteItem(Product item) async {
     final id = item.id;
@@ -61,7 +24,6 @@ class _AdminItemListScreenState extends State<AdminItemListScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Item deleted successfully.')),
       );
-      await _loadItems();
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -86,6 +48,7 @@ class _AdminItemListScreenState extends State<AdminItemListScreen> {
     final stockQty = TextEditingController(text: item.stockQty.toString());
     final supplier = TextEditingController(text: item.supplier);
     final description = TextEditingController(text: item.description);
+    final imageUrl = TextEditingController(text: item.imageUrl);
     final dateAdded = TextEditingController(text: item.dateAdded);
 
     bool isUpdating = false;
@@ -94,84 +57,115 @@ class _AdminItemListScreenState extends State<AdminItemListScreen> {
       context: context,
       builder: (_) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-        title: const Text('Edit Ice Cream'),
-        content: SingleChildScrollView(
-          child: Column(
-            children: [
-              TextField(controller: name, decoration: const InputDecoration(labelText: 'Name')),
-              TextField(controller: sku, decoration: const InputDecoration(labelText: 'SKU')),
-              TextField(controller: category, decoration: const InputDecoration(labelText: 'Category')),
-              TextField(controller: basePrice, decoration: const InputDecoration(labelText: 'Base Price')),
-              TextField(controller: discountedPrice, decoration: const InputDecoration(labelText: 'Discounted Price')),
-              TextField(controller: stockQty, decoration: const InputDecoration(labelText: 'Stock Qty')),
-              TextField(controller: supplier, decoration: const InputDecoration(labelText: 'Supplier')),
-              TextField(controller: description, decoration: const InputDecoration(labelText: 'Description')),
-              TextField(controller: dateAdded, decoration: const InputDecoration(labelText: 'Date Added')),
-            ],
+          title: const Text('Edit Ice Cream'),
+          content: SingleChildScrollView(
+            child: Column(
+              children: [
+                TextField(controller: name, decoration: const InputDecoration(labelText: 'Name')),
+                TextField(controller: sku, decoration: const InputDecoration(labelText: 'SKU')),
+                TextField(controller: category, decoration: const InputDecoration(labelText: 'Category')),
+                TextField(controller: basePrice, decoration: const InputDecoration(labelText: 'Base Price')),
+                TextField(controller: discountedPrice, decoration: const InputDecoration(labelText: 'Discounted Price')),
+                TextField(controller: stockQty, decoration: const InputDecoration(labelText: 'Stock Qty')),
+                TextField(controller: supplier, decoration: const InputDecoration(labelText: 'Supplier')),
+                TextField(controller: description, decoration: const InputDecoration(labelText: 'Description')),
+                TextField(controller: imageUrl, decoration: const InputDecoration(labelText: 'Image URL')),
+                TextField(controller: dateAdded, decoration: const InputDecoration(labelText: 'Date Added')),
+              ],
+            ),
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: isUpdating ? null : () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              if (isUpdating) return;
+          actions: [
+            TextButton(
+              onPressed: isUpdating ? null : () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                if (isUpdating) return;
 
-              final id = item.id;
-              if (id == null) return;
+                final id = item.id;
+                if (id == null) return;
 
-              setDialogState(() => isUpdating = true);
-              setState(() => _busyItemIds.add(id));
+                setDialogState(() => isUpdating = true);
+                setState(() => _busyItemIds.add(id));
 
-              try {
-                final updatedItem = item.copyWith(
-                  name: name.text.trim(),
-                  sku: sku.text.trim(),
-                  category: category.text.trim(),
-                  basePrice: double.tryParse(basePrice.text.trim()) ?? item.basePrice,
-                  discountedPrice: double.tryParse(discountedPrice.text.trim()) ?? item.discountedPrice,
-                  stockQty: int.tryParse(stockQty.text.trim()) ?? item.stockQty,
-                  supplier: supplier.text.trim(),
-                  description: description.text.trim(),
-                  dateAdded: dateAdded.text.trim(),
-                );
+                try {
+                  final updatedItem = item.copyWith(
+                    name: name.text.trim(),
+                    sku: sku.text.trim(),
+                    category: category.text.trim(),
+                    basePrice: double.tryParse(basePrice.text.trim()) ?? item.basePrice,
+                    discountedPrice: double.tryParse(discountedPrice.text.trim()) ?? item.discountedPrice,
+                    stockQty: int.tryParse(stockQty.text.trim()) ?? item.stockQty,
+                    supplier: supplier.text.trim(),
+                    description: description.text.trim(),
+                    imageUrl: imageUrl.text.trim(),
+                    dateAdded: dateAdded.text.trim(),
+                  );
 
-                await DBHelper().updateItem(updatedItem);
+                  await DBHelper().updateItem(updatedItem);
 
-                if (!mounted) return;
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Item updated successfully.')),
-                );
-                await _loadItems();
-              } catch (_) {
-                if (!mounted) return;
-                setDialogState(() => isUpdating = false);
+                  if (!mounted) return;
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Item updated successfully.')),
+                  );
+                } catch (_) {
+                  if (!mounted) return;
+                  setDialogState(() => isUpdating = false);
 
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Update failed. Please try again.'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-              } finally {
-                if (mounted) {
-                  setState(() => _busyItemIds.remove(id));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Update failed. Please try again.'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                } finally {
+                  if (mounted) {
+                    setState(() => _busyItemIds.remove(id));
+                  }
                 }
-              }
-            },
-            child: isUpdating
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2.5),
-                  )
-                : const Text('Update'),
-          ),
-        ],
+              },
+              child: isUpdating
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2.5),
+                    )
+                  : const Text('Update'),
+            ),
+          ],
+        ),
       ),
+    );
+  }
+
+  Widget _imageThumb(Product item) {
+    if (item.imageUrl.isEmpty) {
+      return Container(
+        width: 90,
+        height: 90,
+        decoration: BoxDecoration(
+          color: Colors.blue[50],
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: const Icon(Icons.icecream, color: Colors.blue),
+      );
+    }
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(8),
+      child: Image.network(
+        item.imageUrl,
+        width: 90,
+        height: 90,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => Container(
+          width: 90,
+          height: 90,
+          color: Colors.blue[50],
+          child: const Icon(Icons.broken_image, color: Colors.grey),
+        ),
       ),
     );
   }
@@ -189,51 +183,33 @@ class _AdminItemListScreenState extends State<AdminItemListScreen> {
                 context,
                 MaterialPageRoute(builder: (_) => const AddIceCreamScreen()),
               );
-              _loadItems();
             },
           ),
         ],
       ),
-      body: ListView.builder(
-        itemCount: 1,
-        itemBuilder: (_, __) {
-          if (_isLoadingItems) {
-            return const Padding(
-              padding: EdgeInsets.only(top: 80),
-              child: Center(child: CircularProgressIndicator()),
-            );
+      body: StreamBuilder<List<Product>>(
+        stream: DBHelper().watchItems(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
           }
 
-          if (_loadError != null) {
-            return Padding(
-              padding: const EdgeInsets.only(top: 80),
-              child: Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(_loadError!),
-                    const SizedBox(height: 12),
-                    ElevatedButton(
-                      onPressed: _loadItems,
-                      child: const Text('Retry'),
-                    ),
-                  ],
-                ),
-              ),
-            );
+          if (snapshot.hasError) {
+            return const Center(child: Text('Failed to load items.'));
           }
 
-          if (_items.isEmpty) {
-            return const Padding(
-              padding: EdgeInsets.only(top: 80),
-              child: Center(child: Text('No items available.')),
-            );
+          final items = snapshot.data ?? [];
+          if (items.isEmpty) {
+            return const Center(child: Text('No items available.'));
           }
 
-          return Column(
-            children: _items.map((item) {
+          return ListView.builder(
+            itemCount: items.length,
+            itemBuilder: (_, i) {
+              final item = items[i];
               final id = item.id;
               final isBusy = id != null && _busyItemIds.contains(id);
+
               return Card(
                 margin: const EdgeInsets.all(10),
                 child: Padding(
@@ -241,6 +217,8 @@ class _AdminItemListScreenState extends State<AdminItemListScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      _imageThumb(item),
+                      const SizedBox(height: 8),
                       Text(item.name, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                       Text('SKU: ${item.sku}'),
                       Text('Category: ${item.category}'),
@@ -272,7 +250,7 @@ class _AdminItemListScreenState extends State<AdminItemListScreen> {
                   ),
                 ),
               );
-            }).toList(),
+            },
           );
         },
       ),

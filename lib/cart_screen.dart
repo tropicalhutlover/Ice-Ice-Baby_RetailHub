@@ -113,10 +113,13 @@ class _CartScreenState extends State<CartScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(result.message)),
     );
-    Navigator.pop(
-      context,
-      CartScreenResult(quantities: _quantities, checkedOut: true),
-    );
+    _quantities.clear();
+    if (mounted) {
+      Navigator.pop(
+        context,
+        CartScreenResult(quantities: _quantities, checkedOut: true),
+      );
+    }
   }
 
   void _closeCart() {

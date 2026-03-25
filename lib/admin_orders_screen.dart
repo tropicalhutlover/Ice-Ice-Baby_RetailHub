@@ -107,9 +107,6 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final grouped = _groupOrders();
-    final userIds = grouped.keys.toList()..sort();
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('All Orders'),
@@ -130,130 +127,143 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
             colors: [Color(0xFFE3F2FD), Color(0xFFFFFFFF)],
           ),
         ),
-        child: _loadError != null
-          ? Center(child: Text(_loadError!))
-          : grouped.isEmpty
-            ? const Center(child: Text('No orders yet'))
-            : RefreshIndicator(
-                onRefresh: _loadOrders,
-                child: ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: userIds.length,
-                  itemBuilder: (_, ui) {
-                    final uid = userIds[ui];
-                    final userName = _userNames[uid] ?? 'User #$uid';
-                    final orderGroups = grouped[uid]!;
-                    final groupIds = orderGroups.keys.toList()..sort((a, b) => b.compareTo(a));
+        child: StreamBuilder<List<Order>>(
+          stream: DBHelper().watchAllOrders(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (snapshot.hasError) {
+              return const Center(child: Text('Failed to load orders.'));
+            }
 
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 16),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+            _orders = snapshot.data ?? [];
+            final grouped = _groupOrders();
+            final userIds = grouped.keys.toList()..sort();
+
+            if (grouped.isEmpty) {
+              return const Center(child: Text('No orders yet'));
+            }
+
+            return ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: userIds.length,
+              itemBuilder: (_, ui) {
+                final uid = userIds[ui];
+                final userName = _userNames[uid] ?? 'User #$uid';
+                final orderGroups = grouped[uid]!;
+                final groupIds = orderGroups.keys.toList()..sort((a, b) => b.compareTo(a));
+
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
                           children: [
-                            Row(
-                              children: [
-                                const Icon(Icons.person, color: Colors.blue),
-                                const SizedBox(width: 8),
-                                Text(
-                                  userName,
-                                  style: const TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
+                            const Icon(Icons.person, color: Colors.blue),
+                            const SizedBox(width: 8),
+                            Text(
+                              userName,
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
-                            const Divider(),
-                            ...groupIds.map((gid) {
-                              final rows = orderGroups[gid]!;
-                              final status = rows.first.status;
-                              double total = 0;
-                              for (final r in rows) {
-                                total += r.total;
-                              }
-                              return Padding(
-                                padding: const EdgeInsets.only(bottom: 12),
-                                child: Container(
-                                  padding: const EdgeInsets.all(12),
-                                  decoration: BoxDecoration(
-                                    color: Colors.grey[100],
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                          ],
+                        ),
+                        const Divider(),
+                        ...groupIds.map((gid) {
+                          final rows = orderGroups[gid]!;
+                          final status = rows.first.status;
+                          double total = 0;
+                          for (final r in rows) {
+                            total += r.total;
+                          }
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.grey[100],
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  for (final r in rows)
+                                    Padding(
+                                      padding: const EdgeInsets.only(bottom: 4),
+                                      child: Text(
+                                        '${r.itemName} x${r.qty} — ₱${r.total.toStringAsFixed(2)}',
+                                        style: const TextStyle(fontSize: 14),
+                                      ),
+                                    ),
+                                  const SizedBox(height: 8),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
-                                      for (final r in rows)
-                                        Padding(
-                                          padding: const EdgeInsets.only(bottom: 4),
-                                          child: Text(
-                                            '${r.itemName} x${r.qty} — ₱${r.total.toStringAsFixed(2)}',
-                                            style: const TextStyle(fontSize: 14),
-                                          ),
+                                      Text(
+                                        'Total: ₱${total.toStringAsFixed(0)}',
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 14,
                                         ),
-                                      const SizedBox(height: 8),
-                                      Row(
-                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Text(
-                                            'Total: ₱${total.toStringAsFixed(0)}',
-                                            style: const TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 14,
-                                            ),
-                                          ),
-                                          InkWell(
-                                            onTap: () async {
-                                              final newStatus = await showDialog<String>(
-                                                context: context,
-                                                builder: (ctx) => AlertDialog(
-                                                  title: const Text('Order Status'),
-                                                  content: Column(
-                                                    mainAxisSize: MainAxisSize.min,
-                                                    children: [
-                                                      ListTile(
-                                                        title: const Text('Pending'),
-                                                        selected: status == 'pending',
-                                                        onTap: () => Navigator.pop(ctx, 'pending'),
-                                                      ),
-                                                      ListTile(
-                                                        title: const Text('Preparing'),
-                                                        selected: status == 'preparing',
-                                                        onTap: () => Navigator.pop(ctx, 'preparing'),
-                                                      ),
-                                                      ListTile(
-                                                        title: const Text('Done'),
-                                                        selected: status == 'done',
-                                                        onTap: () => Navigator.pop(ctx, 'done'),
-                                                      ),
-                                                    ],
+                                      ),
+                                      InkWell(
+                                        onTap: () async {
+                                          final newStatus = await showDialog<String>(
+                                            context: context,
+                                            builder: (ctx) => AlertDialog(
+                                              title: const Text('Order Status'),
+                                              content: Column(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  ListTile(
+                                                    title: const Text('Pending'),
+                                                    selected: status == 'pending',
+                                                    onTap: () => Navigator.pop(ctx, 'pending'),
                                                   ),
-                                                ),
-                                              );
-                                              if (newStatus != null) {
-                                                _updateStatus(gid, newStatus);
-                                              }
-                                            },
-                                            child: Chip(
-                                              label: Text(status),
-                                              backgroundColor: _statusColor(status),
+                                                  ListTile(
+                                                    title: const Text('Preparing'),
+                                                    selected: status == 'preparing',
+                                                    onTap: () => Navigator.pop(ctx, 'preparing'),
+                                                  ),
+                                                  ListTile(
+                                                    title: const Text('Done'),
+                                                    selected: status == 'done',
+                                                    onTap: () => Navigator.pop(ctx, 'done'),
+                                                  ),
+                                                ],
+                                              ),
                                             ),
-                                          ),
-                                        ],
+                                          );
+                                          if (newStatus != null) {
+                                            _updateStatus(gid, newStatus);
+                                          }
+                                        },
+                                        child: Chip(
+                                          label: Text(status),
+                                          backgroundColor: _statusColor(status),
+                                        ),
                                       ),
                                     ],
                                   ),
-                                ),
-                              );
-                            }),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
+                                ],
+                              ),
+                            ),
+                          );
+                        }),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            );
+          },
+        ),
       ),
     );
   }

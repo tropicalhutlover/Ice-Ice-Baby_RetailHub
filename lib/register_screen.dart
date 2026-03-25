@@ -13,6 +13,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _addressController = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
 
   bool _passwordHidden = true;
   bool _isRegistering = false;
@@ -86,7 +88,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
             const SizedBox(height: 20),
 
-            const TextField(
+            TextField(
+              controller: _addressController,
               decoration: InputDecoration(
                 labelText: 'Enter your address',
                 hintText: 'House #, Street, Barangay, City',
@@ -97,7 +100,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
             const SizedBox(height: 20),
 
-            const TextField(
+            TextField(
+              controller: _phoneController,
               decoration: InputDecoration(
                 labelText: 'Enter your phone number',
                 hintText: '+63 000-000-0000',
@@ -124,6 +128,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   final name = _nameController.text.trim();
                   final email = _emailController.text.trim();
                   final password = _passwordController.text.trim();
+                  final address = _addressController.text.trim();
+                  final phone = _phoneController.text.trim();
 
                   if (name.isEmpty || email.isEmpty || password.isEmpty) {
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -136,7 +142,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   setState(() => _isRegistering = true);
 
                   try {
-                    await db.registerUser(name, email, password);
+                    await db.registerUser(
+                      name,
+                      email,
+                      password,
+                      address: address,
+                      phone: phone,
+                    );
                     if (!context.mounted) return;
                     setState(() => _isRegistering = false);
                     ScaffoldMessenger.of(context).showSnackBar(

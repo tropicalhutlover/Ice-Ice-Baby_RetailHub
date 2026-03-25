@@ -94,101 +94,114 @@ class _OrderedListScreenState extends State<OrderedListScreen> {
             colors: [Color(0xFFE3F2FD), Color(0xFFFFFFFF)],
           ),
         ),
-        child: _loadError != null
-          ? Center(child: Text(_loadError!))
-          : orders.isEmpty
-            ? const Center(child: Text("No orders yet"))
-            : RefreshIndicator(
-                onRefresh: () async => loadOrders(),
-                child: ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: groupIds.length,
-                  itemBuilder: (_, index) {
-                    final gid = groupIds[index];
-                    final rows = grouped[gid]!;
-                    final status = rows.first.status;
-                    double total = 0;
-                    for (final r in rows) {
-                      total += r.total;
-                    }
-                    Color statusColor = Colors.grey[300]!;
-                    if (status == 'done') statusColor = Colors.green[100]!;
-                    if (status == 'preparing') statusColor = Colors.orange[100]!;
+        child: StreamBuilder<List<Order>>(
+          stream: DBHelper().watchOrders(widget.userId),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (snapshot.hasError) {
+              return const Center(child: Text('Failed to load orders.'));
+            }
 
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            for (final r in rows)
-                              Padding(
-                                padding: const EdgeInsets.only(bottom: 6),
-                                child: Row(
-                                  children: [
-                                    Container(
-                                      width: 50,
-                                      height: 50,
-                                      decoration: BoxDecoration(
-                                        color: Colors.blue[50],
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: const Icon(
-                                        Icons.icecream,
-                                        color: Colors.blue,
-                                        size: 28,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            r.itemName,
-                                            style: const TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 15,
-                                            ),
-                                          ),
-                                          Text(
-                                            'Qty: ${r.qty} • ₱${r.total.toStringAsFixed(2)}',
-                                            style: const TextStyle(
-                                              fontSize: 13,
-                                              color: Colors.black54,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            const Divider(height: 20),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            orders = snapshot.data ?? [];
+            final groupedData = _groupByOrder();
+            final groupKeyList = groupedData.keys.toList();
+
+            if (groupedData.isEmpty) {
+              return const Center(child: Text("No orders yet"));
+            }
+
+            return ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: groupKeyList.length,
+              itemBuilder: (_, index) {
+                final gid = groupKeyList[index];
+                final rows = groupedData[gid]!;
+                final status = rows.first.status;
+                double total = 0;
+                for (final r in rows) {
+                  total += r.total;
+                }
+                Color statusColor = Colors.grey[300]!;
+                if (status == 'done') statusColor = Colors.green[100]!;
+                if (status == 'preparing') statusColor = Colors.orange[100]!;
+
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        for (final r in rows)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 6),
+                            child: Row(
                               children: [
-                                Text(
-                                  'Total: ₱${total.toStringAsFixed(0)}',
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
+                                Container(
+                                  width: 50,
+                                  height: 50,
+                                  decoration: BoxDecoration(
+                                    color: Colors.blue[50],
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Icon(
+                                    Icons.icecream,
+                                    color: Colors.blue,
+                                    size: 28,
                                   ),
                                 ),
-                                Chip(
-                                  label: Text(status),
-                                  backgroundColor: statusColor,
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        r.itemName,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 15,
+                                        ),
+                                      ),
+                                      Text(
+                                        'Qty: ${r.qty} • ₱${r.total.toStringAsFixed(2)}',
+                                        style: const TextStyle(
+                                          fontSize: 13,
+                                          color: Colors.black54,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ],
                             ),
+                          ),
+                        const Divider(height: 20),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Total: ₱${total.toStringAsFixed(0)}',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                            Chip(
+                              label: Text(status),
+                              backgroundColor: statusColor,
+                            ),
                           ],
                         ),
-                      ),
-                    );
-                  },
-                ),
-              ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            );
+          },
+        ),
       ),
     );
   }

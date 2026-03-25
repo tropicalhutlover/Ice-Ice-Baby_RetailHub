@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'db_helper.dart';
 import 'item_list.dart';
 import 'ordered_list.dart';
+import 'profile_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   final int userId;
@@ -94,6 +95,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
         title: const Text("Ice Ice Baby"),
         backgroundColor: Colors.blue,
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.person_outline),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ProfileScreen()),
+              );
+            },
+          ),
+        ],
       ),
       body: Container(
         width: double.infinity,
@@ -222,6 +234,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                     icon: const Icon(Icons.receipt_long),
                     label: const Text('View my orders'),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const ProfileScreen()),
+                      );
+                    },
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size.fromHeight(48),
+                      side: const BorderSide(color: Colors.blue),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    icon: const Icon(Icons.person),
+                    label: const Text('My profile'),
                   ),
                 ),
               ],

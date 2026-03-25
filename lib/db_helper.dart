@@ -51,7 +51,13 @@ class DBHelper {
 
   // Users
 
-  Future<int> registerUser(String name, String email, String password) async {
+  Future<int> registerUser(
+    String name,
+    String email,
+    String password, {
+    String address = '',
+    String phone = '',
+  }) async {
     final cred = await _auth.createUserWithEmailAndPassword(
       email: email.trim(),
       password: password,
@@ -63,6 +69,8 @@ class DBHelper {
       'id': userId,
       'name': name,
       'email': email,
+      'address': address,
+      'phone': phone,
       'isAdmin': 0,
     });
 
@@ -101,6 +109,28 @@ class DBHelper {
     }
   }
 
+  Future<Map<String, dynamic>?> getCurrentUserProfile() async {
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) return null;
+
+    final snap = await (await _usersRef()).child(uid).get();
+    if (!snap.exists || snap.value == null) return null;
+    return Map<String, dynamic>.from((snap.value as Map).cast<String, dynamic>());
+  }
+
+  Stream<Map<String, dynamic>?> watchCurrentUserProfile() {
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) {
+      return Stream<Map<String, dynamic>?>.value(null);
+    }
+
+    return _root.child('users').child(uid).onValue.map((event) {
+      final snapshot = event.snapshot;
+      if (!snapshot.exists || snapshot.value == null) return null;
+      return Map<String, dynamic>.from((snapshot.value as Map).cast<String, dynamic>());
+    });
+  }
+
   // Items
 
   Future<void> insertItem(Product item) async {
@@ -112,6 +142,12 @@ class DBHelper {
   Future<List<Product>> getItems() async {
     final snap = await (await _itemsRef()).get();
     return _snapshotToProducts(snap);
+  }
+
+  Stream<List<Product>> watchItems() {
+    return _root.child('items').onValue.map((event) {
+      return _snapshotToProducts(event.snapshot);
+    });
   }
 
   Future<void> updateItem(Product item) async {
@@ -177,6 +213,7 @@ class DBHelper {
 
       final updates = <String, dynamic>{};
       final orderGroupId = DateTime.now().millisecondsSinceEpoch;
+      int itemIndex = 0;
 
       for (final entry in requested.entries) {
         final itemId = entry.key;
@@ -197,7 +234,8 @@ class DBHelper {
           );
         }
 
-        final orderId = _nextIntId();
+        // Generate unique orderId by combining timestamp and index
+        final orderId = _nextIntId() + itemIndex;
         final order = Order(
           id: orderId,
           userId: userId,
@@ -210,6 +248,7 @@ class DBHelper {
 
         updates['orders/${order.id}'] = order.toMap();
         updates['items/$itemId/stockQty'] = (item.stockQty - qty).toString();
+        itemIndex++;
       }
 
       await _root.update(updates);
@@ -246,9 +285,24 @@ class DBHelper {
     return _snapshotToOrders(snap);
   }
 
+  Stream<List<Order>> watchOrders(int userId) {
+    return _root
+        .child('orders')
+        .orderByChild('userId')
+        .equalTo(userId)
+        .onValue
+        .map((event) => _snapshotToOrders(event.snapshot));
+  }
+
   Future<List<Order>> getAllOrders() async {
     final snap = await (await _ordersRef()).get();
     return _snapshotToOrders(snap);
+  }
+
+  Stream<List<Order>> watchAllOrders() {
+    return _root.child('orders').onValue.map((event) {
+      return _snapshotToOrders(event.snapshot);
+    });
   }
 
   Future<void> updateOrderGroupStatus(
