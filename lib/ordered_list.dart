@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart' show FirebaseException;
 import 'db_helper.dart';
 import 'models/order.dart';
+import 'models/product.dart';
 
 class OrderedListScreen extends StatefulWidget {
   final int userId;
@@ -14,12 +15,20 @@ class OrderedListScreen extends StatefulWidget {
 
 class _OrderedListScreenState extends State<OrderedListScreen> {
   List<Order> orders = [];
+  List<Product> products = [];
   String? _loadError;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     loadOrders();
+    loadProducts();
+  }
+
+  void loadProducts() async {
+    final items = await DBHelper().getItems();
+    if (!mounted) return;
+    setState(() => products = items);
   }
 
   void loadOrders() async {
@@ -59,6 +68,14 @@ class _OrderedListScreenState extends State<OrderedListScreen> {
     }
   }
 
+  Product? _findProduct(String name) {
+    try {
+      return products.firstWhere((p) => p.name == name);
+    } catch (_) {
+      return null;
+    }
+  }
+
   Map<int, List<Order>> _groupByOrder() {
     final groups = <int, List<Order>>{};
     for (final o in orders) {
@@ -69,10 +86,39 @@ class _OrderedListScreenState extends State<OrderedListScreen> {
     return {for (final k in sorted) k: groups[k]!};
   }
 
+  Widget _imageThumb(String url) {
+    if (url.isEmpty) {
+      return Container(
+        width: 50,
+        height: 50,
+        decoration: BoxDecoration(
+          color: Colors.blue[50],
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: const Icon(Icons.icecream, color: Colors.blue),
+      );
+    }
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(8),
+      child: Image.network(
+        url,
+        width: 50,
+        height: 50,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => Container(
+          width: 50,
+          height: 50,
+          color: Colors.blue[50],
+          child: const Icon(Icons.broken_image),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final grouped = _groupByOrder();
-    final groupIds = grouped.keys.toList();
 
     return Scaffold(
       appBar: AppBar(
@@ -106,7 +152,6 @@ class _OrderedListScreenState extends State<OrderedListScreen> {
 
             orders = snapshot.data ?? [];
             final groupedData = _groupByOrder();
-            final groupKeyList = groupedData.keys.toList();
 
             if (groupedData.isEmpty) {
               return const Center(child: Text("No orders yet"));
@@ -114,15 +159,17 @@ class _OrderedListScreenState extends State<OrderedListScreen> {
 
             return ListView.builder(
               padding: const EdgeInsets.all(16),
-              itemCount: groupKeyList.length,
+              itemCount: groupedData.length,
               itemBuilder: (_, index) {
-                final gid = groupKeyList[index];
+                final gid = groupedData.keys.elementAt(index);
                 final rows = groupedData[gid]!;
                 final status = rows.first.status;
+
                 double total = 0;
                 for (final r in rows) {
                   total += r.total;
                 }
+
                 Color statusColor = Colors.grey[300]!;
                 if (status == 'done') statusColor = Colors.green[100]!;
                 if (status == 'preparing') statusColor = Colors.orange[100]!;
@@ -132,61 +179,61 @@ class _OrderedListScreenState extends State<OrderedListScreen> {
                   child: Padding(
                     padding: const EdgeInsets.all(16),
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         for (final r in rows)
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 6),
-                            child: Row(
-                              children: [
-                                Container(
-                                  width: 50,
-                                  height: 50,
-                                  decoration: BoxDecoration(
-                                    color: Colors.blue[50],
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: const Icon(
-                                    Icons.icecream,
-                                    color: Colors.blue,
-                                    size: 28,
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        r.itemName,
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 15,
-                                        ),
+                          Builder(
+                            builder: (_) {
+                              final product = _findProduct(r.itemName);
+
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 10),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    _imageThumb(product?.imageUrl ?? ''),
+                                    const SizedBox(width: 12),
+
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            r.itemName,
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+
+                                          if (product != null)
+                                            Text(
+                                              product.description,
+                                              style: const TextStyle(
+                                                fontSize: 12,
+                                                color: Colors.black54,
+                                              ),
+                                            ),
+
+                                          const SizedBox(height: 4),
+
+                                          Text(
+                                            'Qty: ${r.qty} • ₱${r.total.toStringAsFixed(2)}',
+                                          ),
+                                        ],
                                       ),
-                                      Text(
-                                        'Qty: ${r.qty} • ₱${r.total.toStringAsFixed(2)}',
-                                        style: const TextStyle(
-                                          fontSize: 13,
-                                          color: Colors.black54,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
+                                    ),
+                                  ],
                                 ),
-                              ],
-                            ),
+                              );
+                            },
                           ),
-                        const Divider(height: 20),
+
+                        const Divider(),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
                               'Total: ₱${total.toStringAsFixed(0)}',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                              ),
+                              style: const TextStyle(fontWeight: FontWeight.bold),
                             ),
                             Chip(
                               label: Text(status),
