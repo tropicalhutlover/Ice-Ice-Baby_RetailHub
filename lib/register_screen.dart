@@ -15,6 +15,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController _passwordController = TextEditingController();
 
   bool _passwordHidden = true;
+  bool _isRegistering = false;
 
   @override
   Widget build(BuildContext context) {
@@ -117,15 +118,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     borderRadius: BorderRadius.circular(10),
                   ),
                 ),
-                child: const Text(
-                  "Register",
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
                 onPressed: () async {
+                  if (_isRegistering) return;
+
                   final name = _nameController.text.trim();
                   final email = _emailController.text.trim();
                   final password = _passwordController.text.trim();
@@ -138,17 +133,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   }
 
                   final db = DBHelper();
+                  setState(() => _isRegistering = true);
 
                   try {
                     await db.registerUser(name, email, password);
                     if (!context.mounted) return;
+                    setState(() => _isRegistering = false);
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                          content: Text("Registered successfully")),
+                      const SnackBar(content: Text("Registered successfully")),
                     );
                     Navigator.pop(context);
                   } on FirebaseAuthException catch (e) {
                     if (!context.mounted) return;
+                    setState(() => _isRegistering = false);
                     String message;
                     switch (e.code) {
                       case 'email-already-in-use':
@@ -171,13 +168,31 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     );
                   } catch (e) {
                     if (!context.mounted) return;
+                    setState(() => _isRegistering = false);
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
+                      const SnackBar(
                         content: Text("Registration failed. Please try again."),
                       ),
                     );
                   }
                 },
+                child: _isRegistering
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.5,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Text(
+                        "Register",
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
               ),
             ),
 
@@ -190,9 +205,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 const Text("Already have an account?"),
                 const SizedBox(width: 5),
                 GestureDetector(
-                  onTap: () {
-                    Navigator.pop(context);
-                  },
+                  onTap: _isRegistering ? null : () => Navigator.pop(context),
                   child: const Text(
                     'Login',
                     style: TextStyle(

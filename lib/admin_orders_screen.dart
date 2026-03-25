@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart' show FirebaseException;
 import 'db_helper.dart';
+import 'models/order.dart';
 
 class AdminOrdersScreen extends StatefulWidget {
   const AdminOrdersScreen({super.key});
@@ -9,8 +11,9 @@ class AdminOrdersScreen extends StatefulWidget {
 }
 
 class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
-  List<Map<String, dynamic>> _orders = [];
+  List<Order> _orders = [];
   final Map<int, String> _userNames = {};
+  String? _loadError;
 
   @override
   void initState() {
@@ -19,25 +22,62 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
   }
 
   Future<void> _loadOrders() async {
-    final db = DBHelper();
-    final orders = await db.getAllOrders();
+    try {
+      final db = DBHelper();
+      final orders = await db.getAllOrders();
 
-    final userIds = orders.map((o) => o['userId'] as int?).whereType<int>().toSet();
-    for (final uid in userIds) {
-      if (!_userNames.containsKey(uid)) {
-        final u = await db.getUserById(uid);
-        _userNames[uid] = u?['name'] ?? 'User #$uid';
+      final userIds = orders.map((o) => o.userId).toSet();
+      for (final uid in userIds) {
+        if (!_userNames.containsKey(uid)) {
+          try {
+            final u = await db.getUserById(uid);
+            _userNames[uid] = u?['name'] ?? 'User #$uid';
+          } catch (_) {
+            _userNames[uid] = 'User #$uid';
+          }
+        }
       }
-    }
 
-    setState(() => _orders = orders);
+      if (!mounted) return;
+      setState(() {
+        _orders = orders;
+        _loadError = null;
+      });
+    } on FirebaseException catch (e) {
+      if (!mounted) return;
+      final message = e.code == 'permission-denied'
+          ? 'Cannot read all orders due to database rules.'
+          : 'Failed to load orders. Please try again.';
+      setState(() {
+        _orders = [];
+        _loadError = message;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _orders = [];
+        _loadError = 'Failed to load orders. Please try again.';
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Failed to load orders. Please try again.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
-  Map<int, Map<int, List<Map<String, dynamic>>>> _groupOrders() {
-    final byUser = <int, Map<int, List<Map<String, dynamic>>>>{};
+  Map<int, Map<int, List<Order>>> _groupOrders() {
+    final byUser = <int, Map<int, List<Order>>>{};
     for (final o in _orders) {
-      final uid = o['userId'] as int? ?? 0;
-      final gid = o['orderGroupId'] as int? ?? o['id'] as int;
+      final uid = o.userId;
+      final gid = o.orderGroupId;
       byUser.putIfAbsent(uid, () => {});
       byUser[uid]!.putIfAbsent(gid, () => []).add(o);
     }
@@ -90,7 +130,9 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
             colors: [Color(0xFFE3F2FD), Color(0xFFFFFFFF)],
           ),
         ),
-        child: grouped.isEmpty
+        child: _loadError != null
+          ? Center(child: Text(_loadError!))
+          : grouped.isEmpty
             ? const Center(child: Text('No orders yet'))
             : RefreshIndicator(
                 onRefresh: _loadOrders,
@@ -126,10 +168,10 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
                             const Divider(),
                             ...groupIds.map((gid) {
                               final rows = orderGroups[gid]!;
-                              final status = (rows.first['status'] ?? 'pending').toString();
+                              final status = rows.first.status;
                               double total = 0;
                               for (final r in rows) {
-                                total += (r['total'] as num?)?.toDouble() ?? 0;
+                                total += r.total;
                               }
                               return Padding(
                                 padding: const EdgeInsets.only(bottom: 12),
@@ -146,7 +188,7 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
                                         Padding(
                                           padding: const EdgeInsets.only(bottom: 4),
                                           child: Text(
-                                            '${r['itemName']} x${r['qty']} — ₱${r['total']}',
+                                            '${r.itemName} x${r.qty} — ₱${r.total.toStringAsFixed(2)}',
                                             style: const TextStyle(fontSize: 14),
                                           ),
                                         ),

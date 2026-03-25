@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'db_helper.dart';
+import 'models/product.dart';
 
 class AddIceCreamScreen extends StatefulWidget {
   const AddIceCreamScreen({super.key});
@@ -19,32 +20,54 @@ class _AddIceCreamScreenState extends State<AddIceCreamScreen> {
   final supplier = TextEditingController();
   final imageUrl = TextEditingController();
   final dateAdded = TextEditingController();
+  bool _isSubmitting = false;
 
   Future<void> _addItem() async {
+    if (_isSubmitting) return;
+
+    if (name.text.trim().isEmpty || basePrice.text.trim().isEmpty || stock.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Name, Base Price, and Stock Qty are required.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+
     try {
-      await DBHelper().insertItem({
-        'name': name.text,
-        'sku': sku.text,
-        'category': category.text,
-        'basePrice': basePrice.text,
-        'discountedPrice': discountedPrice.text,
-        'stockQty': stock.text,
-        'description': description.text,
-        'supplier': supplier.text,
-        'imageUrl': imageUrl.text,
-        'dateAdded': dateAdded.text,
-      });
+      final product = Product(
+        name: name.text.trim(),
+        sku: sku.text.trim(),
+        category: category.text.trim(),
+        basePrice: double.tryParse(basePrice.text.trim()) ?? 0,
+        discountedPrice: double.tryParse(discountedPrice.text.trim()) ?? 0,
+        stockQty: int.tryParse(stock.text.trim()) ?? 0,
+        description: description.text.trim(),
+        supplier: supplier.text.trim(),
+        imageUrl: imageUrl.text.trim(),
+        dateAdded: dateAdded.text.trim(),
+      );
 
-      Navigator.pop(context);
+      await DBHelper().insertItem(product);
 
+      if (!mounted) return;
+      setState(() => _isSubmitting = false);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Item added successfully')),
       );
+      Navigator.pop(context);
     } catch (e) {
-      print("ADD ERROR: $e");
+      if (!mounted) return;
+      setState(() => _isSubmitting = false);
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Add failed: $e')),
+        const SnackBar(
+          content: Text('Add failed. Please try again.'),
+          backgroundColor: Colors.red,
+        ),
       );
     }
   }
@@ -81,8 +104,14 @@ class _AddIceCreamScreenState extends State<AddIceCreamScreen> {
           field('Date Added (e.g. 2026-03-25)', dateAdded),
 
           ElevatedButton(
-            onPressed: _addItem,
-            child: const Text('Add'),
+            onPressed: _isSubmitting ? null : _addItem,
+            child: _isSubmitting
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2.5),
+                  )
+                : const Text('Add'),
           ),
         ],
       ),

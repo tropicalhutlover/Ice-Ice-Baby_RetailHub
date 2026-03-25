@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart' show FirebaseException;
 import 'db_helper.dart';
+import 'models/order.dart';
 
 class OrderedListScreen extends StatefulWidget {
   final int userId;
@@ -11,7 +13,8 @@ class OrderedListScreen extends StatefulWidget {
 }
 
 class _OrderedListScreenState extends State<OrderedListScreen> {
-  List<Map<String, dynamic>> orders = [];
+  List<Order> orders = [];
+  String? _loadError;
 
   @override
   void didChangeDependencies() {
@@ -20,14 +23,46 @@ class _OrderedListScreenState extends State<OrderedListScreen> {
   }
 
   void loadOrders() async {
-    final raw = await DBHelper().getOrders(widget.userId);
-    if (mounted) setState(() => orders = raw);
+    try {
+      final raw = await DBHelper().getOrders(widget.userId);
+      if (!mounted) return;
+      setState(() {
+        orders = raw;
+        _loadError = null;
+      });
+    } on FirebaseException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        orders = [];
+        _loadError = e.code == 'permission-denied'
+            ? 'Cannot read orders due to database rules.'
+            : 'Failed to load orders. Please try again.';
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(_loadError!),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        orders = [];
+        _loadError = 'Failed to load orders. Please try again.';
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Failed to load orders. Please try again.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
-  Map<int, List<Map<String, dynamic>>> _groupByOrder() {
-    final groups = <int, List<Map<String, dynamic>>>{};
+  Map<int, List<Order>> _groupByOrder() {
+    final groups = <int, List<Order>>{};
     for (final o in orders) {
-      final gid = o['orderGroupId'] as int? ?? o['id'] as int;
+      final gid = o.orderGroupId;
       groups.putIfAbsent(gid, () => []).add(o);
     }
     final sorted = groups.keys.toList()..sort((a, b) => b.compareTo(a));
@@ -59,7 +94,9 @@ class _OrderedListScreenState extends State<OrderedListScreen> {
             colors: [Color(0xFFE3F2FD), Color(0xFFFFFFFF)],
           ),
         ),
-        child: orders.isEmpty
+        child: _loadError != null
+          ? Center(child: Text(_loadError!))
+          : orders.isEmpty
             ? const Center(child: Text("No orders yet"))
             : RefreshIndicator(
                 onRefresh: () async => loadOrders(),
@@ -69,10 +106,10 @@ class _OrderedListScreenState extends State<OrderedListScreen> {
                   itemBuilder: (_, index) {
                     final gid = groupIds[index];
                     final rows = grouped[gid]!;
-                    final status = (rows.first['status'] ?? 'pending').toString();
+                    final status = rows.first.status;
                     double total = 0;
                     for (final r in rows) {
-                      total += (r['total'] as num?)?.toDouble() ?? 0;
+                      total += r.total;
                     }
                     Color statusColor = Colors.grey[300]!;
                     if (status == 'done') statusColor = Colors.green[100]!;
@@ -109,14 +146,14 @@ class _OrderedListScreenState extends State<OrderedListScreen> {
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
                                           Text(
-                                            r['itemName']?.toString() ?? '',
+                                            r.itemName,
                                             style: const TextStyle(
                                               fontWeight: FontWeight.bold,
                                               fontSize: 15,
                                             ),
                                           ),
                                           Text(
-                                            'Qty: ${r['qty']} • ₱${r['total']}',
+                                            'Qty: ${r.qty} • ₱${r.total.toStringAsFixed(2)}',
                                             style: const TextStyle(
                                               fontSize: 13,
                                               color: Colors.black54,

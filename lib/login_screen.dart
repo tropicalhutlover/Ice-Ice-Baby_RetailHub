@@ -17,6 +17,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _passwordController = TextEditingController();
 
   bool _passwordHidden = true;
+  bool _isLoggingIn = false;
 
   @override
   Widget build(BuildContext context) {
@@ -90,21 +91,29 @@ class _LoginScreenState extends State<LoginScreen> {
                     borderRadius: BorderRadius.circular(10),
                   ),
                 ),
-                child: const Text(
-                  'Login',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
                 onPressed: () async {
+                  if (_isLoggingIn) return;
+
                   final email = _emailController.text.trim();
                   final password = _passwordController.text.trim();
+
+                  if (email.isEmpty || password.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Please enter both email and password.'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                    return;
+                  }
+
+                  setState(() => _isLoggingIn = true);
 
                   final db = DBHelper();
                   final user = await db.login(email, password);
                   if (!context.mounted) return;
+
+                  setState(() => _isLoggingIn = false);
 
                   if (user != null) {
                     final isAdmin = (user['isAdmin'] ?? 0) == 1;
@@ -131,13 +140,32 @@ class _LoginScreenState extends State<LoginScreen> {
                     );
                   }
                 },
+                child: _isLoggingIn
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.5,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Text(
+                        'Login',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
               ),
             ),
             const SizedBox(height: 20),
 
             // Create Account
             TextButton(
-              onPressed: () {
+              onPressed: _isLoggingIn
+                  ? null
+                  : () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -156,7 +184,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
             // Forgot Password
             TextButton(
-              onPressed: () {
+              onPressed: _isLoggingIn
+                  ? null
+                  : () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(

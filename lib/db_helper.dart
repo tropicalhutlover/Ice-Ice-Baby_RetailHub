@@ -1,5 +1,14 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'models/order.dart';
+import 'models/product.dart';
+
+class CheckoutResult {
+  final bool success;
+  final String message;
+
+  const CheckoutResult({required this.success, required this.message});
+}
 
 class DBHelper {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -24,6 +33,16 @@ class DBHelper {
     });
 
     return list;
+  }
+
+  List<Product> _snapshotToProducts(DataSnapshot snapshot) {
+    final rows = _snapshotToList(snapshot);
+    return rows.map(Product.fromMap).toList();
+  }
+
+  List<Order> _snapshotToOrders(DataSnapshot snapshot) {
+    final rows = _snapshotToList(snapshot);
+    return rows.map(Order.fromMap).toList();
   }
 
   Future<DatabaseReference> _itemsRef() async => _root.child('items');
@@ -69,31 +88,37 @@ class DBHelper {
   }
 
   Future<Map<String, dynamic>?> getUserById(int id) async {
-    final snap = await (await _usersRef())
-        .orderByChild('id')
-        .equalTo(id)
-        .get();
+    try {
+      final snap = await (await _usersRef())
+          .orderByChild('id')
+          .equalTo(id)
+          .get();
 
-    final list = _snapshotToList(snap);
-    return list.isNotEmpty ? list.first : null;
+      final list = _snapshotToList(snap);
+      return list.isNotEmpty ? list.first : null;
+    } catch (_) {
+      return null;
+    }
   }
 
   // Items
 
-  Future<void> insertItem(Map<String, dynamic> item) async {
+  Future<void> insertItem(Product item) async {
     final id = _nextIntId();
-    item['id'] = id;
-
-    await (await _itemsRef()).child(id.toString()).set(item);
+    final newItem = item.copyWith(id: id);
+    await (await _itemsRef()).child(id.toString()).set(newItem.toMap());
   }
 
-  Future<List<Map<String, dynamic>>> getItems() async {
+  Future<List<Product>> getItems() async {
     final snap = await (await _itemsRef()).get();
-    return _snapshotToList(snap);
+    return _snapshotToProducts(snap);
   }
 
-  Future<void> updateItem(int id, Map<String, dynamic> item) async {
-    await (await _itemsRef()).child(id.toString()).update(item);
+  Future<void> updateItem(Product item) async {
+    if (item.id == null) {
+      throw ArgumentError('Product id is required for update.');
+    }
+    await (await _itemsRef()).child(item.id.toString()).update(item.toMap());
   }
 
   Future<void> deleteItem(int id) async {
@@ -117,18 +142,113 @@ class DBHelper {
     });
   }
 
-  Future<List<Map<String, dynamic>>> getOrders(int userId) async {
+  Future<CheckoutResult> checkoutOrder({
+    required int userId,
+    required Map<int, int> quantities,
+  }) async {
+    final requested = <int, int>{};
+    for (final entry in quantities.entries) {
+      if (entry.value > 0) {
+        requested[entry.key] = entry.value;
+      }
+    }
+
+    if (requested.isEmpty) {
+      return const CheckoutResult(
+        success: false,
+        message: 'Please select at least one item.',
+      );
+    }
+
+    try {
+      final itemsSnap = await (await _itemsRef()).get();
+      if (!itemsSnap.exists || itemsSnap.value == null) {
+        return const CheckoutResult(
+          success: false,
+          message: 'Items are unavailable. Please try again.',
+        );
+      }
+
+      final products = _snapshotToProducts(itemsSnap);
+      final byId = <int, Product>{
+        for (final p in products)
+          if (p.id != null) p.id!: p,
+      };
+
+      final updates = <String, dynamic>{};
+      final orderGroupId = DateTime.now().millisecondsSinceEpoch;
+
+      for (final entry in requested.entries) {
+        final itemId = entry.key;
+        final qty = entry.value;
+
+        final item = byId[itemId];
+        if (item == null) {
+          return CheckoutResult(
+            success: false,
+            message: 'An item was removed. Please refresh and try again.',
+          );
+        }
+
+        if (qty > item.stockQty) {
+          return CheckoutResult(
+            success: false,
+            message: 'Insufficient stock for ${item.name}.',
+          );
+        }
+
+        final orderId = _nextIntId();
+        final order = Order(
+          id: orderId,
+          userId: userId,
+          orderGroupId: orderGroupId,
+          itemName: item.name,
+          qty: qty,
+          total: qty * item.discountedPrice,
+          status: 'pending',
+        );
+
+        updates['orders/${order.id}'] = order.toMap();
+        updates['items/$itemId/stockQty'] = (item.stockQty - qty).toString();
+      }
+
+      await _root.update(updates);
+
+      return const CheckoutResult(
+        success: true,
+        message: 'Order placed successfully.',
+      );
+    } on FirebaseException catch (e) {
+      if (e.code == 'permission-denied') {
+        return const CheckoutResult(
+          success: false,
+          message: 'Checkout blocked by database rules. Verify items/orders write permissions.',
+        );
+      }
+      return CheckoutResult(
+        success: false,
+        message: e.message ?? 'Checkout failed. Please try again.',
+      );
+    } catch (_) {
+      return const CheckoutResult(
+        success: false,
+        message: 'Checkout failed. Please try again.',
+      );
+    }
+  }
+
+  Future<List<Order>> getOrders(int userId) async {
     final snap = await (await _ordersRef())
         .orderByChild('userId')
         .equalTo(userId)
         .get();
 
-    return _snapshotToList(snap);
+    return _snapshotToOrders(snap);
   }
 
-  Future<List<Map<String, dynamic>>> getAllOrders() async {
+  Future<List<Order>> getAllOrders() async {
     final snap = await (await _ordersRef()).get();
-    return _snapshotToList(snap);
+    return _snapshotToOrders(snap);
   }
 
   Future<void> updateOrderGroupStatus(

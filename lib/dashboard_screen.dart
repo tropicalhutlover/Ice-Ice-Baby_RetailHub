@@ -195,7 +195,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                     icon: const Icon(Icons.local_grocery_store),
                     label: const Text(
-                      'Order Ice Cream',
+                      'Shop & Cart',
                       style: TextStyle(fontSize: 18),
                     ),
                   ),
