@@ -131,6 +131,24 @@ class DBHelper {
     });
   }
 
+  Future<void> updateUserProfile({
+    required int userId,
+    required String name,
+    required String email,
+    required String address,
+    required String phone,
+  }) async {
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) return;
+
+    await (await _usersRef()).child(uid).update({
+      'name': name,
+      'email': email,
+      'address': address,
+      'phone': phone,
+    });
+  }
+
   // Items
 
   Future<void> insertItem(Product item) async {
