@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'cart_screen.dart';
 import 'db_helper.dart';
@@ -49,12 +48,16 @@ class _ItemListScreenState extends State<ItemListScreen> {
     });
 
     _itemsSubscription = DBHelper().watchItems().listen(
-      (fetched) {
+          (fetched) {
         if (!mounted) return;
-        final currentIds = fetched.where((p) => p.id != null).map((p) => p.id!).toSet();
 
-        // Keep existing local cart quantities while syncing against live catalog updates.
+        final currentIds = fetched
+            .where((p) => p.id != null)
+            .map((p) => p.id!)
+            .toSet();
+
         quantities.removeWhere((key, _) => !currentIds.contains(key));
+
         for (final p in fetched) {
           if (p.id != null) {
             quantities.putIfAbsent(p.id!, () => 0);
@@ -111,6 +114,7 @@ class _ItemListScreenState extends State<ItemListScreen> {
     quantities
       ..clear()
       ..addAll(result.quantities);
+
     setState(() {});
 
     if (result.checkedOut) {
@@ -134,6 +138,7 @@ class _ItemListScreenState extends State<ItemListScreen> {
       userId: widget.userId,
       quantities: quantities,
     );
+
     if (!mounted) return;
 
     if (!result.success) {
@@ -146,8 +151,10 @@ class _ItemListScreenState extends State<ItemListScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(result.message)),
     );
+
     quantities.clear();
     setState(() {});
+
     if (mounted) {
       Navigator.pop(context);
     }
@@ -170,14 +177,16 @@ class _ItemListScreenState extends State<ItemListScreen> {
                     right: -6,
                     top: -8,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
                         color: Colors.red,
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
                         _cartCount.toString(),
-                        style: const TextStyle(color: Colors.white, fontSize: 10),
+                        style: const TextStyle(
+                            color: Colors.white, fontSize: 10),
                       ),
                     ),
                   ),
@@ -192,26 +201,27 @@ class _ItemListScreenState extends State<ItemListScreen> {
             child: _isLoadingItems
                 ? const Center(child: CircularProgressIndicator())
                 : _loadError != null
-                    ? Center(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(_loadError!),
-                            const SizedBox(height: 12),
-                            ElevatedButton(
-                              onPressed: _startItemsSubscription,
-                              child: const Text('Retry'),
-                            ),
-                          ],
-                        ),
-                      )
-                    : ListView.builder(
-                        itemCount: items.length,
-                        itemBuilder: (_, i) => _itemCard(items[i]),
-                      ),
+                ? Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(_loadError!),
+                  const SizedBox(height: 12),
+                  ElevatedButton(
+                    onPressed: _startItemsSubscription,
+                    child: const Text('Retry'),
+                  ),
+                ],
+              ),
+            )
+                : ListView.builder(
+              itemCount: items.length,
+              itemBuilder: (_, i) => _itemCard(items[i]),
+            ),
           ),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            padding:
+            const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             child: Row(
               children: [
                 Expanded(
@@ -224,7 +234,10 @@ class _ItemListScreenState extends State<ItemListScreen> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: (_isLoadingItems || _cartCount == 0) ? null : _quickCheckout,
+                    onPressed:
+                    (_isLoadingItems || _cartCount == 0)
+                        ? null
+                        : _quickCheckout,
                     child: const Text('Quick Checkout'),
                   ),
                 ),
@@ -249,23 +262,25 @@ class _ItemListScreenState extends State<ItemListScreen> {
           borderRadius: BorderRadius.circular(8),
           child: item.imageUrl.isNotEmpty
               ? Image.network(
-                  item.imageUrl,
-                  width: 52,
-                  height: 52,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Container(
-                    width: 52,
-                    height: 52,
-                    color: Colors.blue[50],
-                    child: const Icon(Icons.broken_image, color: Colors.grey),
-                  ),
-                )
+            item.imageUrl,
+            width: 52,
+            height: 52,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => Container(
+              width: 52,
+              height: 52,
+              color: Colors.blue[50],
+              child: const Icon(Icons.broken_image,
+                  color: Colors.grey),
+            ),
+          )
               : Container(
-                  width: 52,
-                  height: 52,
-                  color: Colors.blue[50],
-                  child: const Icon(Icons.icecream, color: Colors.blue),
-                ),
+            width: 52,
+            height: 52,
+            color: Colors.blue[50],
+            child: const Icon(Icons.icecream,
+                color: Colors.blue),
+          ),
         ),
         title: Text(item.name),
         subtitle: Column(
@@ -273,15 +288,16 @@ class _ItemListScreenState extends State<ItemListScreen> {
           children: [
             Text('Category: ${item.category}'),
             Text('Base Price: ₱${item.basePrice.toStringAsFixed(2)}'),
-            Text('Discounted Price: ₱${item.discountedPrice.toStringAsFixed(2)}'),
-            Text('Stock: ${availableStock < 0 ? 0 : availableStock}'),
-
+            Text(
+                'Discounted Price: ₱${item.discountedPrice.toStringAsFixed(2)}'),
+            Text(
+                'Stock: ${availableStock < 0 ? 0 : availableStock}'),
             if (availableStock <= 0)
               const Text(
                 'Out of Stock',
-                style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                    color: Colors.red, fontWeight: FontWeight.bold),
               ),
-
             Text('Description: ${item.description}'),
           ],
         ),
@@ -291,23 +307,18 @@ class _ItemListScreenState extends State<ItemListScreen> {
             IconButton(
               icon: const Icon(Icons.remove),
               onPressed: qty > 0
-                  ? () {
-                setState(() {
-                  quantities[id] = qty - 1;
-                });
-              }
+                  ? () => setState(() {
+                quantities[id] = qty - 1;
+              })
                   : null,
             ),
-
             Text(qty.toString()),
             IconButton(
               icon: const Icon(Icons.add),
               onPressed: availableStock > 0
-                  ? () {
-                setState(() {
-                  quantities[id] = qty + 1;
-                });
-              }
+                  ? () => setState(() {
+                quantities[id] = qty + 1;
+              })
                   : null,
             ),
           ],
