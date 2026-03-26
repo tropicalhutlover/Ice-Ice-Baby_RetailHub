@@ -3,6 +3,7 @@ import 'db_helper.dart';
 import 'item_list.dart';
 import 'ordered_list.dart';
 import 'profile_screen.dart';
+import 'login_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   final int userId;
@@ -88,6 +89,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
     setState(() {});
   }
 
+  void logout() {
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
+          (route) => false,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -97,13 +106,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
         centerTitle: true,
         actions: [
           IconButton(
-            icon: const Icon(Icons.person_outline),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const ProfileScreen()),
-              );
-            },
+            icon: const Icon(Icons.logout),
+            onPressed: logout,
           ),
         ],
       ),
@@ -130,28 +134,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        'Ice Ice Baby',
+                        'Welcome, ${widget.userName}!',
                         textAlign: TextAlign.center,
                         style: Theme.of(context)
                             .textTheme
                             .headlineMedium
                             ?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.blueGrey[800],
-                            ),
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blueGrey[800],
+                        ),
                       ),
                       const SizedBox(height: 8),
-                      Text(
-                        'Welcome, ${widget.userName}!',
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context)
-                            .textTheme
-                            .titleMedium
-                            ?.copyWith(
-                              color: Colors.blueGrey[700],
-                            ),
-                      ),
-                      const SizedBox(height: 4),
                       const Text(
                         'Craving something sweet? Order your favourite scoops now!',
                         textAlign: TextAlign.center,
