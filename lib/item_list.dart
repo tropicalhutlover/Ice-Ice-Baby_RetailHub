@@ -85,7 +85,6 @@ class _ItemListScreenState extends State<ItemListScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Please wait for items to finish loading.'),
-          backgroundColor: Colors.red,
         ),
       );
       return;
@@ -143,7 +142,7 @@ class _ItemListScreenState extends State<ItemListScreen> {
 
     if (!result.success) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(result.message), backgroundColor: Colors.red),
+        SnackBar(content: Text(result.message)),
       );
       return;
     }

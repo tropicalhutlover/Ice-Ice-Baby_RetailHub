@@ -28,7 +28,7 @@ This project demonstrates a full-stack application integrating frontend UI, back
 
 * Firebase Realtime Database
 * Firebase Authentication
-* Firebase CLoud Storage
+* Firebase Cloud Storage
 
 ---
 

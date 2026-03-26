@@ -29,7 +29,6 @@ class _AdminItemListScreenState extends State<AdminItemListScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Delete failed. Please try again.'),
-          backgroundColor: Colors.red,
         ),
       );
     } finally {
@@ -117,7 +116,6 @@ class _AdminItemListScreenState extends State<AdminItemListScreen> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text('Update failed. Please try again.'),
-                      backgroundColor: Colors.red,
                     ),
                   );
                 } finally {

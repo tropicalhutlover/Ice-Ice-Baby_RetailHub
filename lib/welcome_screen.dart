@@ -6,8 +6,10 @@ class WelcomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+
     return Scaffold(
-      backgroundColor: Colors.blueGrey[50],
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Padding(
         padding: const EdgeInsets.all(20.0),
         child: Column(
@@ -17,7 +19,7 @@ class WelcomeScreen extends StatelessWidget {
               width: 120,
               height: 120,
               decoration: BoxDecoration(
-                color: Colors.blueGrey,
+                color: colors.primary,
                 borderRadius: BorderRadius.circular(60),
               ),
               child: ClipRRect(
@@ -32,24 +34,24 @@ class WelcomeScreen extends StatelessWidget {
 
             const Icon(
               Icons.icecream_outlined,
-              color: Colors.red,
+              color: Color(0xFFE96A73),
               size: 50.0,
             ),
             const SizedBox(height: 10),
 
-            const Text(
-              'Ice Cream Shop',
+            Text(
+              'Ice Ice Baby',
               style: TextStyle(
                 fontSize: 32,
                 fontWeight: FontWeight.bold,
-                color: Colors.blueGrey,
+                color: colors.primary,
                 letterSpacing: 1.5,
               ),
             ),
             const SizedBox(height: 10),
             
             const Text(
-              'Sweet Treats Await',
+              'Ice Cream Shop',
               style: TextStyle(
                 fontSize: 16,
                 color: Colors.grey,
@@ -58,7 +60,7 @@ class WelcomeScreen extends StatelessWidget {
             const SizedBox(height: 40),
 
             const Text(
-              'Welcome to our shop!',
+              'Welcome, Ice Cream Enjoyer!',
               style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.w600,
@@ -70,12 +72,12 @@ class WelcomeScreen extends StatelessWidget {
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 20),
               child: Text(
-                'Discover delicious ice cream flavors and sweet treats. '
-                    'Made fresh daily just for you.',
+                'Discover delicious ice cream flavors. '
+                    'Fresh scoops made daily just for you!.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 14,
-                  color: Colors.grey,
+                  color: Colors.black54,
                 ),
               ),
             ),
@@ -92,7 +94,6 @@ class WelcomeScreen extends StatelessWidget {
                   );
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blueGrey,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
                   ),

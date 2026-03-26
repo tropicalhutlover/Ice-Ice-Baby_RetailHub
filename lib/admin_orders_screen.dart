@@ -55,7 +55,6 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(message),
-          backgroundColor: Colors.red,
         ),
       );
     } catch (_) {
@@ -67,7 +66,6 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Failed to load orders. Please try again.'),
-          backgroundColor: Colors.red,
         ),
       );
     }
@@ -110,7 +108,6 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('All Orders'),
-        backgroundColor: Colors.blue,
         centerTitle: true,
         actions: [
           IconButton(
@@ -163,7 +160,10 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
                       children: [
                         Row(
                           children: [
-                            const Icon(Icons.person, color: Colors.blue),
+                            Icon(
+                              Icons.person,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
                             const SizedBox(width: 8),
                             Text(
                               userName,

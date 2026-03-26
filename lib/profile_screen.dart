@@ -71,7 +71,6 @@ class ProfileScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('My Profile'),
-        backgroundColor: Colors.blue,
       ),
       body: StreamBuilder<Map<String, dynamic>?>(
         stream: DBHelper().watchCurrentUserProfile(),
@@ -103,7 +102,7 @@ class ProfileScreen extends StatelessWidget {
             return Card(
               margin: const EdgeInsets.only(bottom: 10),
               child: ListTile(
-                leading: Icon(icon, color: Colors.blue),
+                leading: Icon(icon, color: Theme.of(context).colorScheme.primary),
                 title: Text(label),
                 subtitle: Text(value.isEmpty ? '-' : value),
               ),
@@ -117,8 +116,12 @@ class ProfileScreen extends StatelessWidget {
                 const SizedBox(height: 8),
                 CircleAvatar(
                   radius: 38,
-                  backgroundColor: Colors.blue[100],
-                  child: const Icon(Icons.person, size: 42, color: Colors.blue),
+                  backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                  child: Icon(
+                    Icons.person,
+                    size: 42,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
                 ),
                 const SizedBox(height: 16),
                 tile('Name', name, Icons.badge_outlined),
@@ -134,7 +137,6 @@ class ProfileScreen extends StatelessWidget {
                   child: ElevatedButton.icon(
                     onPressed: () => _showEditDialog(context, data),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue,
                       minimumSize: const Size.fromHeight(50),
                     ),
                     icon: const Icon(Icons.edit),

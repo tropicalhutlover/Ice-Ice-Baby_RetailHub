@@ -50,7 +50,6 @@ class _OrderedListScreenState extends State<OrderedListScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(_loadError!),
-          backgroundColor: Colors.red,
         ),
       );
     } catch (_) {
@@ -62,7 +61,6 @@ class _OrderedListScreenState extends State<OrderedListScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Failed to load orders. Please try again.'),
-          backgroundColor: Colors.red,
         ),
       );
     }
@@ -123,7 +121,6 @@ class _OrderedListScreenState extends State<OrderedListScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text("My Orders"),
-        backgroundColor: Colors.blue,
         centerTitle: true,
         actions: [
           IconButton(

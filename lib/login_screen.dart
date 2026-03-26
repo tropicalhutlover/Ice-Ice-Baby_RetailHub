@@ -23,7 +23,6 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.blueGrey,
         title: const Text('Login Page'),
         centerTitle: true,
       ),
@@ -86,7 +85,6 @@ class _LoginScreenState extends State<LoginScreen> {
               height: 50,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blueGrey,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
                   ),
@@ -101,7 +99,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text('Please enter both email and password.'),
-                        backgroundColor: Colors.red,
                       ),
                     );
                     return;
@@ -135,7 +132,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text("User does not exist or wrong password"),
-                        backgroundColor: Colors.red,
                       ),
                     );
                   }
@@ -176,7 +172,6 @@ class _LoginScreenState extends State<LoginScreen> {
               child: const Text(
                 "Create Account",
                 style: TextStyle(
-                  color: Colors.blueGrey,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -196,9 +191,6 @@ class _LoginScreenState extends State<LoginScreen> {
               },
               child: const Text(
                 "Forgot Password?",
-                style: TextStyle(
-                  color: Colors.blueGrey,
-                ),
               ),
             ),
           ],

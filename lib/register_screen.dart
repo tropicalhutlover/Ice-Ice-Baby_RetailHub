@@ -23,7 +23,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.blueGrey,
         title: const Text('Registration Page'),
       ),
       body: SingleChildScrollView(
@@ -32,12 +31,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
           children: [
             const SizedBox(height: 20),
 
-            const Text(
+            Text(
               'Welcome!',
               style: TextStyle(
                 fontSize: 28,
                 fontWeight: FontWeight.bold,
-                color: Colors.blueGrey,
+                color: Theme.of(context).colorScheme.primary,
               ),
             ),
             const SizedBox(height: 30),
@@ -117,7 +116,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
               height: 50,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blueGrey,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
                   ),
@@ -221,7 +219,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   child: const Text(
                     'Login',
                     style: TextStyle(
-                      color: Colors.blueGrey,
                       fontWeight: FontWeight.bold,
                     ),
                   ),

@@ -66,7 +66,6 @@ class _AddIceCreamScreenState extends State<AddIceCreamScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Image upload failed'),
-          backgroundColor: Colors.red,
         ),
       );
 
@@ -83,7 +82,6 @@ class _AddIceCreamScreenState extends State<AddIceCreamScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Name, Base Price, and Stock Qty are required.'),
-          backgroundColor: Colors.red,
         ),
       );
       return;
@@ -131,7 +129,6 @@ class _AddIceCreamScreenState extends State<AddIceCreamScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Add failed. Please try again.'),
-          backgroundColor: Colors.red,
         ),
       );
     }
