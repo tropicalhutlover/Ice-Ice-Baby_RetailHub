@@ -55,26 +55,22 @@ class AdminDashboardScreen extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        'Ice Ice Baby',
+                        'Welcome, $userName!',
                         textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                        style: Theme.of(context)
+                            .textTheme
+                            .headlineMedium
+                            ?.copyWith(
                           fontWeight: FontWeight.bold,
                           color: Colors.blueGrey[800],
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Admin, $userName',
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: Colors.blueGrey[700],
                         ),
                       ),
                       const SizedBox(height: 4),
                       const Text(
                         'Manage menu and view customer orders',
                         textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 14, color: Colors.black54),
+                        style:
+                        TextStyle(fontSize: 14, color: Colors.black54),
                       ),
                     ],
                   ),
