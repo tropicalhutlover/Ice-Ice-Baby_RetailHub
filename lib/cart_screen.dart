@@ -30,6 +30,7 @@ class CartScreen extends StatefulWidget {
 
 class _CartScreenState extends State<CartScreen> {
   static const double _taxRate = 0.12;
+
   late Map<int, int> _quantities;
   bool _isCheckingOut = false;
 
@@ -77,6 +78,7 @@ class _CartScreenState extends State<CartScreen> {
     if (id == null) return;
 
     final clamped = next.clamp(0, p.stockQty);
+
     setState(() {
       _quantities[id] = clamped;
     });
@@ -84,6 +86,7 @@ class _CartScreenState extends State<CartScreen> {
 
   Future<void> _checkout() async {
     if (_isCheckingOut) return;
+
     if (_itemCount == 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Your cart is empty.')),
@@ -92,6 +95,7 @@ class _CartScreenState extends State<CartScreen> {
     }
 
     setState(() => _isCheckingOut = true);
+
     final result = await DBHelper().checkoutOrder(
       userId: widget.userId,
       quantities: _quantities,
@@ -113,11 +117,16 @@ class _CartScreenState extends State<CartScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(result.message)),
     );
+
     _quantities.clear();
+
     if (mounted) {
       Navigator.pop(
         context,
-        CartScreenResult(quantities: _quantities, checkedOut: true),
+        CartScreenResult(
+          quantities: _quantities,
+          checkedOut: true,
+        ),
       );
     }
   }
@@ -125,7 +134,10 @@ class _CartScreenState extends State<CartScreen> {
   void _closeCart() {
     Navigator.pop(
       context,
-      CartScreenResult(quantities: _quantities, checkedOut: false),
+      CartScreenResult(
+        quantities: _quantities,
+        checkedOut: false,
+      ),
     );
   }
 
@@ -147,55 +159,64 @@ class _CartScreenState extends State<CartScreen> {
             child: cartProducts.isEmpty
                 ? const Center(child: Text('No items in cart yet.'))
                 : ListView.builder(
+              padding: const EdgeInsets.all(12),
+              itemCount: cartProducts.length,
+              itemBuilder: (_, i) {
+                final p = cartProducts[i];
+                final qty = _qty(p);
+
+                final displayStock =
+                (p.stockQty - qty).clamp(0, p.stockQty);
+
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 10),
+                  child: Padding(
                     padding: const EdgeInsets.all(12),
-                    itemCount: cartProducts.length,
-                    itemBuilder: (_, i) {
-                      final p = cartProducts[i];
-                      final qty = _qty(p);
-                      return Card(
-                        margin: const EdgeInsets.only(bottom: 10),
-                        child: Padding(
-                          padding: const EdgeInsets.all(12),
-                          child: Row(
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment:
+                            CrossAxisAlignment.start,
                             children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      p.name,
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text('₱${p.discountedPrice.toStringAsFixed(2)} each'),
-                                    Text('Stock: ${p.stockQty}'),
-                                  ],
+                              Text(
+                                p.name,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
                                 ),
                               ),
-                              IconButton(
-                                onPressed: qty > 0 ? () => _changeQty(p, qty - 1) : null,
-                                icon: const Icon(Icons.remove),
-                              ),
-                              Text(qty.toString()),
-                              IconButton(
-                                onPressed: qty < p.stockQty
-                                    ? () => _changeQty(p, qty + 1)
-                                    : null,
-                                icon: const Icon(Icons.add),
-                              ),
-                              IconButton(
-                                onPressed: () => _changeQty(p, 0),
-                                icon: const Icon(Icons.delete, color: Colors.red),
-                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                  '₱${p.discountedPrice.toStringAsFixed(2)} each'),
+                              Text('Stock: $displayStock'),
                             ],
                           ),
                         ),
-                      );
-                    },
+                        IconButton(
+                          onPressed: qty > 0
+                              ? () => _changeQty(p, qty - 1)
+                              : null,
+                          icon: const Icon(Icons.remove),
+                        ),
+                        Text(qty.toString()),
+                        IconButton(
+                          onPressed: qty < p.stockQty
+                              ? () => _changeQty(p, qty + 1)
+                              : null,
+                          icon: const Icon(Icons.add),
+                        ),
+                        IconButton(
+                          onPressed: () => _changeQty(p, 0),
+                          icon: const Icon(Icons.delete,
+                              color: Colors.red),
+                        ),
+                      ],
+                    ),
                   ),
+                );
+              },
+            ),
           ),
           Container(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
@@ -225,11 +246,13 @@ class _CartScreenState extends State<CartScreen> {
                   children: [
                     const Text(
                       'Total',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 16),
                     ),
                     Text(
                       '₱${_total.toStringAsFixed(2)}',
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 16),
                     ),
                   ],
                 ),
@@ -240,11 +263,13 @@ class _CartScreenState extends State<CartScreen> {
                     onPressed: _isCheckingOut ? null : _checkout,
                     child: _isCheckingOut
                         ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2.5),
-                          )
-                        : Text('Check Out ($_itemCount item${_itemCount == 1 ? '' : 's'})'),
+                      width: 20,
+                      height: 20,
+                      child:
+                      CircularProgressIndicator(strokeWidth: 2.5),
+                    )
+                        : Text(
+                        'Check Out ($_itemCount item${_itemCount == 1 ? '' : 's'})'),
                   ),
                 ),
               ],
